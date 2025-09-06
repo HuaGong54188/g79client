@@ -1,0 +1,48 @@
+package g79client
+
+import (
+	"net/http"
+	"strconv"
+)
+
+const engineVersion = "3.4.5.272725"
+
+// Client 结构体
+type Client struct {
+	UserID        string
+	UserToken     string
+	ReleaseJSON   *ReleaseJSON
+	EngineVersion string
+	LatestVersion string
+	UserDetail    *UserEntity
+	httpClient    *http.Client
+}
+
+// 创建新的客户端
+func NewClient() (*Client, error) {
+	c := &Client{
+		EngineVersion: engineVersion,
+		httpClient:    &http.Client{},
+	}
+	var err error
+	c.LatestVersion, err = c.GetLatestVersion()
+	if err != nil {
+		return nil, err
+	}
+	c.ReleaseJSON, err = c.GetReleaseJSON()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// 设置用户凭证
+func (c *Client) SetCredentials(userID, userToken string) {
+	c.UserID = userID
+	c.UserToken = userToken
+}
+
+// 获取用户ID的整数形式
+func (c *Client) GetUserIDInt() (int64, error) {
+	return strconv.ParseInt(c.UserID, 10, 64)
+}
