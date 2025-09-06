@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-const engineVersion = "3.4.5.272725"
+const EngineVersion = "3.4.5.272725"
 
 // Client 结构体
 type Client struct {
@@ -21,7 +21,7 @@ type Client struct {
 // 创建新的客户端
 func NewClient() (*Client, error) {
 	c := &Client{
-		EngineVersion: engineVersion,
+		EngineVersion: EngineVersion,
 		httpClient:    &http.Client{},
 	}
 	var err error
