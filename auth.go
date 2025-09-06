@@ -271,7 +271,7 @@ func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, e
 		"displayName":   c.UserDetail.Name,
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:RentalGame", serverID),
-		"os_name":       "iOS",
+		"os_name":       "android",
 		"patchVersion":  c.LatestVersion,
 		"uid":           uid,
 	}
