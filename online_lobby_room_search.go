@@ -12,6 +12,7 @@ type OnlineLobbyRoomSearchEntity struct {
 	RoomID    Uncertain `json:"room_id"`
 	RoomName  string    `json:"room_name"`
 	OwnerName string    `json:"owner_name"`
+	OwnerID   Uncertain `json:"owner_id"`
 }
 
 // 在线大厅房间搜索响应
