@@ -292,7 +292,7 @@ func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, erro
 		"displayName":   c.UserDetail.Name,
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:LobbyGame", roomID),
-		"os_name":       "iOS",
+		"os_name":       "android",
 		"patchVersion":  c.LatestVersion,
 		"uid":           uid,
 	}
