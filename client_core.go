@@ -25,11 +25,11 @@ func NewClient() (*Client, error) {
 		httpClient:    &http.Client{},
 	}
 	var err error
-	c.LatestVersion, err = c.GetLatestVersion()
+	c.LatestVersion, err = GetGlobalLatestVersion()
 	if err != nil {
 		return nil, err
 	}
-	c.ReleaseJSON, err = c.GetReleaseJSON()
+	c.ReleaseJSON, err = GetGlobalReleaseJSON()
 	if err != nil {
 		return nil, err
 	}

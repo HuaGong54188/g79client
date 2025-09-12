@@ -89,48 +89,12 @@ func (c *Client) AuthenticateWithCookie(cookieStr string) error {
 
 // 获取最新版本
 func (c *Client) GetLatestVersion() (string, error) {
-	resp, err := http.Get("https://g79.update.netease.com/patch_list/production/g79_rn_patchlist")
-	if err != nil {
-		return "", err
-	}
-
-	body, err := readResponseBody(resp)
-	if err != nil {
-		return "", err
-	}
-
-	var patchInfo PatchInfo
-	err = json.Unmarshal(body, &patchInfo)
-	if err != nil {
-		return "", err
-	}
-
-	if len(patchInfo.IOS) == 0 {
-		return "", fmt.Errorf("没有找到iOS版本信息")
-	}
-
-	return patchInfo.IOS[len(patchInfo.IOS)-1], nil
+	return GetGlobalLatestVersion()
 }
 
 // 获取服务器配置
 func (c *Client) GetReleaseJSON() (*ReleaseJSON, error) {
-	resp, err := http.Get("https://g79.update.netease.com/serverlist/ios_release.0.25.json")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := readResponseBody(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	var releaseJSON ReleaseJSON
-	err = json.Unmarshal(body, &releaseJSON)
-	if err != nil {
-		return nil, err
-	}
-
-	return &releaseJSON, nil
+	return GetGlobalReleaseJSON()
 }
 
 // 使用Cookie执行PE认证
@@ -140,7 +104,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 	clientLoginSN := "db797f983ca314e00626b9212705d8cc"
 
 	// 使用传入的Cookie数据构建认证数据
-	sauthJSON := map[string]interface{}{
+	sauthJSON := map[string]any{
 		"aim_info":         sauthData.AimInfo,
 		"app_channel":      "app_store",
 		"client_login_sn":  clientLoginSN,
@@ -156,7 +120,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 		"udid":             sauthData.UDID,
 	}
 
-	saData := map[string]interface{}{
+	saData := map[string]any{
 		"app_channel":   "app_store",
 		"app_ver":       c.LatestVersion,
 		"core_num":      "6",
@@ -185,7 +149,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 
 	saDataJSON, _ := json.Marshal(saData)
 
-	peauth := map[string]interface{}{
+	peauth := map[string]any{
 		"engine_version": c.EngineVersion,
 		"extra_param":    "extra",
 		"message":        fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.LatestVersion, messagePart, seed),
@@ -265,7 +229,7 @@ func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, e
 		return nil, err
 	}
 
-	authv2 := map[string]interface{}{
+	authv2 := map[string]any{
 		"bit":           "64",
 		"clientKey":     clientKey,
 		"displayName":   c.UserDetail.Name,
@@ -286,7 +250,7 @@ func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, erro
 		return nil, err
 	}
 
-	authv2 := map[string]interface{}{
+	authv2 := map[string]any{
 		"bit":           "64",
 		"clientKey":     clientKey,
 		"displayName":   c.UserDetail.Name,
