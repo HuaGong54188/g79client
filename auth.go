@@ -23,10 +23,12 @@ type LoginResponse struct {
 
 // {'HostNum': 200, 'ServerHostNum': 8000, 'TempServerStop': 0, 'CdnUrl': 'https://g79.gdl.netease.com/', 'H5VersionUrl': 'https://g79.update.netease.com/cdnversion/obt_h5version.json', 'SeadraUrl': 'https://pub-api.seadra.netease.com', 'HomeServerUrl': 'https://g79mclobthome.minecraft.cn', 'HomeServerGrayUrl': 'https://g79mclobthomegray.nie.netease.com:9443', 'WebServerUrl': 'https://g79mclobt.minecraft.cn', 'WebServerGrayUrl': 'https://g79mclobtgray.nie.netease.com:9443', 'CoreServerUrl': 'https://g79obtapigtcoregray.minecraft.cn', 'CoreServerGrayUrl': 'https://g79obtapigtcoregray.minecraft.cn', 'TransferServerUrl': 'https://g79.update.netease.com/transferserver_obt_new.list', 'TransferServerHttpUrl': 'https://g79transfernew.nie.netease.com', 'TransferServerNewHttpUrl': 'https://g79mcltransfer.minecraft.cn', 'MomentUrl': 'https://x19-pyq.webcgi.163.com/', 'ForumUrl': 'https://mcpel-web.16163.com', 'AuthServerUrl': 'https://g79authobt.minecraft.cn', 'ChatServerUrl': 'https://x19.update.netease.com/chatserver.list', 'PathNUrl': 'https://impression.update.netease.com/lighten/atlas_x19_hangzhou-{isp}.txt', 'PePathNUrl': 'https://impression.update.netease.com/lighten/atlas_g79_hangzhou-{isp}.txt', 'PathNIpv6Url': 'https://impression.update.netease.com/lighten/x19/cnv6.txt', 'PePathNIpv6Url': 'https://impression.update.netease.com/lighten/g79/cnv6.txt', 'LinkServerUrl': 'https://g79.update.netease.com/linkserver_obt.list', 'ApiGatewayUrl': 'https://g79apigatewayobt.minecraft.cn', 'ApiGatewayWeiXinUrl': 'https://g79apigatewayobtweixin.minecraft.cn', 'ApiGatewayGrayUrl': 'https://g79apigatewaygrayobt.nie.netease.com', 'communityHost': 'https://news-api.16163.com/app/g79/api', 'WelfareUrl': 'https://mc.163.com/pe/client/', 'DCWebUrl': 'https://x19apigatewayobt.nie.netease.com', 'RentalTransferUrl': 'https://mcrealms.update.netease.com/isp_map_production.json', 'MgbSdkUrl': 'https://mgbsdk.matrix.netease.com'}
 type ReleaseJSON struct {
-	CoreServerURL string `json:"CoreServerUrl"`
-	AuthServerURL string `json:"AuthServerUrl"`
-	WebServerUrl  string `json:"WebServerUrl"`
-	ApiGatewayUrl string `json:"ApiGatewayUrl"`
+	CoreServerURL            string `json:"CoreServerUrl"`
+	AuthServerURL            string `json:"AuthServerUrl"`
+	WebServerUrl             string `json:"WebServerUrl"`
+	ApiGatewayUrl            string `json:"ApiGatewayUrl"`
+	TransferServerUrl        string `json:"TransferServerUrl"`
+	TransferServerNewHttpUrl string `json:"TransferServerNewHttpUrl"`
 }
 
 type PatchInfo struct {
@@ -222,6 +224,8 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 	return nil
 }
 
+var OSName = "android"
+
 // 生成租赁服认证v2数据
 func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, error) {
 	uid, err := c.GetUserIDInt()
@@ -235,7 +239,7 @@ func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, e
 		"displayName":   c.UserDetail.Name,
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:RentalGame", serverID),
-		"os_name":       "android",
+		"os_name":       OSName,
 		"patchVersion":  c.LatestVersion,
 		"uid":           uid,
 	}
@@ -256,7 +260,28 @@ func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, erro
 		"displayName":   c.UserDetail.Name,
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:LobbyGame", roomID),
-		"os_name":       "android",
+		"os_name":       OSName,
+		"patchVersion":  c.LatestVersion,
+		"uid":           uid,
+	}
+
+	return json.Marshal(authv2)
+}
+
+// 生成网络游戏认证v2数据（netease_sid: roomID:NetworkGame）
+func (c *Client) GenerateNetworkGameAuthV2(roomID, clientKey string) ([]byte, error) {
+	uid, err := c.GetUserIDInt()
+	if err != nil {
+		return nil, err
+	}
+
+	authv2 := map[string]any{
+		"bit":           "64",
+		"clientKey":     clientKey,
+		"displayName":   c.UserDetail.Name,
+		"engineVersion": c.EngineVersion,
+		"netease_sid":   fmt.Sprintf("%s:NetworkGame", roomID),
+		"os_name":       OSName,
 		"patchVersion":  c.LatestVersion,
 		"uid":           uid,
 	}
