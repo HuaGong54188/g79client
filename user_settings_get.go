@@ -69,6 +69,7 @@ func (c *Client) GetUserSettingList() (*GetUserSettingListResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(string(respBody))
 
 	var getResp GetUserSettingListResponse
 	if err := json.Unmarshal(respBody, &getResp); err != nil {
