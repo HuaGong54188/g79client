@@ -32,17 +32,13 @@ type PeGameGetServerAddressResponse struct {
 // 获取网络游戏进入的服务器地址
 // 对应：POST /pe-game/query/get-server-address
 // 参数：itemID（必填），ticket（可为空；nil 将以 JSON null 发送）
-func (c *Client) GetPeGameServerAddress(itemID string, ticket *string) (*PeGameGetServerAddressResponse, error) {
+func (c *Client) GetPeGameServerAddress(itemID string) (*PeGameGetServerAddressResponse, error) {
 	api := "/pe-game/query/get-server-address"
 
 	requestData := map[string]interface{}{
 		"item_id": itemID,
 	}
-	if ticket != nil {
-		requestData["ticket"] = *ticket
-	} else {
-		requestData["ticket"] = nil
-	}
+	requestData["ticket"] = nil
 
 	jsonData, err := json.Marshal(requestData)
 	if err != nil {
