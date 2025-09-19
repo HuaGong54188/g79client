@@ -5,12 +5,13 @@ import (
 	"strconv"
 )
 
-const EngineVersion = "3.4.5.272725"
+const EngineVersion = "3.5.5.278500"
 
 // Client 结构体
 type Client struct {
 	UserID        string
 	UserToken     string
+	Seed          string
 	ReleaseJSON   *ReleaseJSON
 	EngineVersion string
 	LatestVersion string

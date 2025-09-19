@@ -14,6 +14,7 @@ import (
 type LoginEntity struct {
 	EntityID string `json:"entity_id"`
 	Token    string `json:"token"`
+	Seed     string `json:"seed"`
 }
 
 type LoginResponse struct {
@@ -220,6 +221,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 
 	// 设置用户凭证
 	c.SetCredentials(loginResp.Entity.EntityID, loginResp.Entity.Token)
+	c.Seed = loginResp.Entity.Seed
 
 	return nil
 }
