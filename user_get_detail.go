@@ -16,50 +16,38 @@ type UserDetailResponse struct {
 
 // UserDetailEntity 描述玩家的完整档案信息。
 type UserDetailEntity struct {
+	UserSocialState
+
 	// 基础资料
-	EntityID       string `json:"entity_id"`
-	Account        string `json:"account"`
-	Gender         string `json:"gender"`
-	Name           string `json:"name"`
-	Signature      string `json:"signature"`
-	AvatarImageURL string `json:"avatar_image_url"`
-	HeadImage      string `json:"head_image"`
-	FrameID        string `json:"frame_id"`
-	MomentID       string `json:"moment_id"`
-	PublicFlag     bool   `json:"public_flag"`
-	HasMessage     bool   `json:"hasMessage"`
-	UsedName       string `json:"used_name"`
-	Aid            string `json:"aid"`
+	EntityID       string    `json:"entity_id"`
+	Account        string    `json:"account"`
+	Gender         string    `json:"gender"`
+	Name           string    `json:"name"`
+	Signature      string    `json:"signature"`
+	AvatarImageURL string    `json:"avatar_image_url"`
+	HeadImage      string    `json:"head_image"`
+	FrameID        string    `json:"frame_id"`
+	Aid            string    `json:"aid"`
+	HeadImageType  Uncertain `json:"headImageType"`
+	InstructInfo   string    `json:"instruct_info"`
 
 	// 数值信息
 	Level               Uncertain `json:"level"`
 	Score               Uncertain `json:"score"`
 	SkinNumber          Uncertain `json:"skin_number"`
 	CapeNumber          Uncertain `json:"cape_number"`
-	RestCurrencyTime    Uncertain `json:"rest_currency_time"`
-	RemainReviseNameCnt Uncertain `json:"remain_revise_name_cnt"`
 	NicknameFree        Uncertain `json:"nickname_free"`
 	NicknameInit        Uncertain `json:"nickname_init"`
 	RealnameStatus      Uncertain `json:"realname_status"`
 	RegisterTime        Uncertain `json:"register_time"`
 	LoginTime           Uncertain `json:"login_time"`
 	LogoutTime          Uncertain `json:"logout_time"`
-	UpdateTimeStamp     Uncertain `json:"update_time_stamp"`
-	BanChatExpiredAt    Uncertain `json:"ban_chat_expired_at"`
-	MsgBackgroundID     Uncertain `json:"msg_background_id"`
-	ChatBubbleID        Uncertain `json:"chat_bubble_id"`
 	HeadImageCD         Uncertain `json:"head_image_cd"`
 	AccessGameFlag      Uncertain `json:"access_game_flag"`
 	AntiAdditionStatus  Uncertain `json:"anti_addition_status"`
-	WechatWishItem      Uncertain `json:"wechat_wish_item"`
-	FavoriteIIDStatus   Uncertain `json:"favorite_iid_status"`
 	SubscribeExpireTime Uncertain `json:"subscribe_expiration_time"`
 	VIPXDSubscribed     Uncertain `json:"vipxd_subscribed_benefit"`
 	RechargeVIPLevel    Uncertain `json:"recharge_vip_level"`
-	OnlineStatus        Uncertain `json:"online_status"`
-	IsNewReward         Uncertain `json:"is_new_reward"`
-	IsPhoneBind         Uncertain `json:"is_phone_bind"`
-	IsPhoneAccount      Uncertain `json:"is_phone_account"`
 
 	// 状态布尔量
 	IsVIP                bool `json:"is_vip"`
@@ -67,29 +55,18 @@ type UserDetailEntity struct {
 	IsSubscribe          bool `json:"is_subscribe"`
 	IsAntiAddiction      bool `json:"isAntiAddiction"`
 	NeedRealnameAuth     bool `json:"need_realname_auth"`
-	NeedPhoneBind        bool `json:"need_phone_bind"`
-	CanPostVideo         bool `json:"can_post_video"`
 	CanBuyVIPSpecial     bool `json:"can_buy_vip_special"`
 	CanBuyFirstChargeVIP bool `json:"can_buy_first_charge_vip"`
 	CanUseExtraWorkbench bool `json:"can_use_extra_workbench"`
-	IsBind               bool `json:"is_bind"`
 
 	// 复合数据
-	ActivityBonus    []any                          `json:"activity_bonus"`
-	SingleGameEffect []any                          `json:"single_game_special_effect"`
-	BanItemInfo      []any                          `json:"ban_item_info"`
-	MailDelList      []any                          `json:"mail_del_list"`
-	NewChatBubbleID  []any                          `json:"new_chat_bubble_id"`
-	VIPRecoverInfo   []any                          `json:"vip_recover_info"`
-	UnlockInfo       map[string]any                 `json:"unlock_info"`
-	RechargeVIPInfo  map[string]any                 `json:"recharge_vip_info"`
-	DataVisible      map[string]any                 `json:"data_visible"`
-	VIPInfo          UserDetailVIPInfo              `json:"vip_info"`
-	UserGuideInfo    UserGuideInfo                  `json:"user_guide_info"`
-	WechatInfo       *PeUserLoginAfterWechatInfo    `json:"wechat_info"`
-	SocialSetting    *PeUserLoginAfterSocialSetting `json:"social_setting"`
-	WechatWishItemID string                         `json:"wechat_wish_item_id"`
-	MyImageURL       string                         `json:"my_image_url"`
+	NewChatBubbleID []any             `json:"new_chat_bubble_id"`
+	VIPRecoverInfo  []any             `json:"vip_recover_info"`
+	UnlockInfo      map[string]any    `json:"unlock_info"`
+	RechargeVIPInfo map[string]any    `json:"recharge_vip_info"`
+	DataVisible     map[string]any    `json:"data_visible"`
+	VIPInfo         UserDetailVIPInfo `json:"vip_info"`
+	UserGuideInfo   UserGuideInfo     `json:"user_guide_info"`
 }
 
 // UserDetailVIPInfo 描述 VIP 信息。

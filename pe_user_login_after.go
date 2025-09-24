@@ -10,58 +10,7 @@ import (
 // PeUserLoginAfterResponse 表示 /pe-user-login-after 接口的响应体。
 type PeUserLoginAfterResponse struct {
 	Response
-	Entity PeUserLoginAfterEntity `json:"entity"`
-}
-
-// PeUserLoginAfterEntity 描述登录后返回的玩家状态信息。
-type PeUserLoginAfterEntity struct {
-	HasMessage          bool                           `json:"hasMessage"`
-	RestCurrencyTime    Uncertain                      `json:"rest_currency_time"`
-	RemainReviseNameCnt Uncertain                      `json:"remain_revise_name_cnt"`
-	UsedName            string                         `json:"used_name"`
-	MomentID            string                         `json:"moment_id"`
-	PublicFlag          bool                           `json:"public_flag"`
-	CanPostVideo        bool                           `json:"can_post_video"`
-	NeedPhoneBind       bool                           `json:"need_phone_bind"`
-	IsPhoneBind         Uncertain                      `json:"is_phone_bind"`
-	UpdateTimeStamp     Uncertain                      `json:"update_time_stamp"`
-	IsNewReward         Uncertain                      `json:"is_new_reward"`
-	IsPhoneAccount      Uncertain                      `json:"is_phone_account"`
-	BanChatExpiredAt    Uncertain                      `json:"ban_chat_expired_at"`
-	ActivityBonus       []any                          `json:"activity_bonus"`
-	SingleGameEffect    []any                          `json:"single_game_special_effect"`
-	BanItemInfo         []any                          `json:"ban_item_info"`
-	OnlineStatus        Uncertain                      `json:"online_status"`
-	WechatWishItem      Uncertain                      `json:"wechat_wish_item"`
-	MyImageURL          string                         `json:"my_image_url"`
-	MailDelList         []any                          `json:"mail_del_list"`
-	FavoriteIIDStatus   Uncertain                      `json:"favorite_iid_status"`
-	IsBind              bool                           `json:"is_bind"`
-	WechatInfo          *PeUserLoginAfterWechatInfo    `json:"wechat_info"`
-	WechatWishItemID    string                         `json:"wechat_wish_item_id"`
-	SocialSetting       *PeUserLoginAfterSocialSetting `json:"social_setting"`
-}
-
-// PeUserLoginAfterWechatInfo 描述微信相关信息。
-type PeUserLoginAfterWechatInfo struct {
-	BindReward  *PeUserLoginAfterBindReward `json:"bind_reward"`
-	WechatH5URL string                      `json:"wechat_h5_url"`
-}
-
-// PeUserLoginAfterBindReward 描述微信绑定奖励。
-type PeUserLoginAfterBindReward struct {
-	URL string    `json:"url"`
-	NB  Uncertain `json:"nb"`
-	TP  Uncertain `json:"tp"`
-}
-
-// PeUserLoginAfterSocialSetting 描述社交设置。
-type PeUserLoginAfterSocialSetting struct {
-	UnderageMode              bool      `json:"underage_mode"`
-	BlockStrangers            bool      `json:"block_strangers"`
-	BlockAllMessages          bool      `json:"block_all_messages"`
-	BlockRepostedAndCommented bool      `json:"block_reposted_and_commented"`
-	MessageVisibility         Uncertain `json:"message_visibility"`
+	Entity UserSocialState `json:"entity"`
 }
 
 // GetPeUserLoginAfter 请求 /pe-user-login-after 接口并缓存响应。

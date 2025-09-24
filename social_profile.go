@@ -8,6 +8,7 @@ type SocialProfile struct {
 	HeadImage            string                `json:"headImage"`
 	FrameID              string                `json:"frame_id"`
 	MomentID             string                `json:"moment_id"`
+	HeadImageType        Uncertain             `json:"headImageType"`
 	PublicFlag           Uncertain             `json:"public_flag"`
 	PEGrowth             SocialProfileGrowth   `json:"pe_growth"`
 	UserGameInfo         map[string]any        `json:"user_game_info"`
@@ -26,6 +27,11 @@ type SocialProfile struct {
 	RechargeVIPLevel     Uncertain             `json:"recharge_vip_level"`
 	RechargeVIPInfo      map[string]any        `json:"recharge_vip_info"`
 	LBSInfo              *SocialProfileLBSInfo `json:"lbs_info"`
+	OnlineStatus         Uncertain             `json:"online_status"`
+	OnlineType           Uncertain             `json:"online_type"`
+	ChatBubbleID         Uncertain             `json:"chat_bubble_id"`
+	MsgBackgroundID      Uncertain             `json:"msg_background_id"`
+	StaticURL            string                `json:"static_url"`
 }
 
 // SocialProfileGrowth 表示成长信息。
@@ -58,4 +64,55 @@ type SocialProfileLBSInfo struct {
 	Province string `json:"province"`
 	City     string `json:"city"`
 	Area     string `json:"area"`
+}
+
+// WechatBindReward 描述微信绑定奖励。
+type WechatBindReward struct {
+	URL string    `json:"url"`
+	NB  Uncertain `json:"nb"`
+	TP  Uncertain `json:"tp"`
+}
+
+// SocialWechatInfo 描述与微信相关的配置。
+type SocialWechatInfo struct {
+	BindReward  *WechatBindReward `json:"bind_reward"`
+	WechatH5URL string            `json:"wechat_h5_url"`
+}
+
+// SocialSetting 描述社交隐私设置。
+type SocialSetting struct {
+	UnderageMode              bool      `json:"underage_mode"`
+	BlockStrangers            bool      `json:"block_strangers"`
+	BlockAllMessages          bool      `json:"block_all_messages"`
+	BlockRepostedAndCommented bool      `json:"block_reposted_and_commented"`
+	MessageVisibility         Uncertain `json:"message_visibility"`
+}
+
+// UserSocialState 汇总登录后接口与档案接口的公共字段。
+type UserSocialState struct {
+	HasMessage          bool              `json:"hasMessage"`
+	RestCurrencyTime    Uncertain         `json:"rest_currency_time"`
+	RemainReviseNameCnt Uncertain         `json:"remain_revise_name_cnt"`
+	UsedName            string            `json:"used_name"`
+	MomentID            string            `json:"moment_id"`
+	PublicFlag          bool              `json:"public_flag"`
+	CanPostVideo        bool              `json:"can_post_video"`
+	NeedPhoneBind       bool              `json:"need_phone_bind"`
+	IsPhoneBind         Uncertain         `json:"is_phone_bind"`
+	UpdateTimeStamp     Uncertain         `json:"update_time_stamp"`
+	IsNewReward         Uncertain         `json:"is_new_reward"`
+	IsPhoneAccount      Uncertain         `json:"is_phone_account"`
+	BanChatExpiredAt    Uncertain         `json:"ban_chat_expired_at"`
+	ActivityBonus       []any             `json:"activity_bonus"`
+	SingleGameEffect    []any             `json:"single_game_special_effect"`
+	BanItemInfo         []any             `json:"ban_item_info"`
+	OnlineStatus        Uncertain         `json:"online_status"`
+	WechatWishItem      Uncertain         `json:"wechat_wish_item"`
+	MyImageURL          string            `json:"my_image_url"`
+	MailDelList         []any             `json:"mail_del_list"`
+	FavoriteIIDStatus   Uncertain         `json:"favorite_iid_status"`
+	IsBind              bool              `json:"is_bind"`
+	WechatInfo          *SocialWechatInfo `json:"wechat_info"`
+	WechatWishItemID    string            `json:"wechat_wish_item_id"`
+	SocialSetting       *SocialSetting    `json:"social_setting"`
 }

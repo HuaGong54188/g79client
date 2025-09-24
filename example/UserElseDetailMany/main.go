@@ -24,7 +24,7 @@ func main() {
 	// 简要打印
 	fmt.Printf("返回用户数: %d\n", len(resp.Entities))
 	for i, e := range resp.Entities {
-		fmt.Printf("%d) id=%d nickname=%s lv=%d online=%v\n", i+1, e.ID.Int64(), e.Nickname, e.PeGrowth.Lv.Int64(), e.OnlineStatus.Bool())
+		fmt.Printf("%d) id=%d nickname=%s lv=%d online=%v\n", i+1, e.ID.Int64(), e.Nickname, e.PEGrowth.Lv.Int64(), e.OnlineStatus.Bool())
 	}
 
 	fmt.Printf("summary_md5: %s\n", resp.SummaryMD5)

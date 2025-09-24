@@ -7,47 +7,12 @@ import (
 	"strings"
 )
 
-// -------------------- 强类型响应定义 --------------------
-
-// 他人详情成长信息
-type ElseDetailGrowth struct {
-	ChatBubbleID    Uncertain `json:"chat_bubble_id"`
-	Decorate        []any     `json:"decorate"`
-	Exp             Uncertain `json:"exp"`
-	IsVIP           Uncertain `json:"is_vip"`
-	IsVIPExpr       Uncertain `json:"is_vip_expr"`
-	Lv              Uncertain `json:"lv"`
-	MsgBackgroundID Uncertain `json:"msg_background_id"`
-	NeedExp         Uncertain `json:"need_exp"`
-}
-
-// 他人详情实体
-type ElseDetailEntity struct {
-	ChatBubbleID         Uncertain        `json:"chat_bubble_id"`
-	FrameID              string           `json:"frame_id"`
-	HeadImage            string           `json:"headImage"`
-	HeadImageType        Uncertain        `json:"headImageType"`
-	ID                   Uncertain        `json:"id"`
-	MomentID             Uncertain        `json:"moment_id"`
-	MsgBackgroundID      Uncertain        `json:"msg_background_id"`
-	Nickname             string           `json:"nickname"`
-	OnlineStatus         Uncertain        `json:"online_status"`
-	OnlineType           Uncertain        `json:"online_type"`
-	PeGrowth             ElseDetailGrowth `json:"pe_growth"`
-	PublicFlag           Uncertain        `json:"public_flag"`
-	RechargeBenefitLevel Uncertain        `json:"recharge_benefit_level"`
-	RechargeVIPInfo      map[string]any   `json:"recharge_vip_info"`
-	RechargeVIPLevel     Uncertain        `json:"recharge_vip_level"`
-	Signature            string           `json:"signature"`
-	StaticURL            string           `json:"static_url"`
-}
-
 // 批量他人详情响应
 type UserElseDetailManyResponse struct {
 	Response
-	Entities   []ElseDetailEntity `json:"entities"`
-	Details    string             `json:"details"`
-	SummaryMD5 string             `json:"summary_md5"`
+	Entities   []SocialProfile `json:"entities"`
+	Details    string          `json:"details"`
+	SummaryMD5 string          `json:"summary_md5"`
 }
 
 // 获取他人详情（批量）
