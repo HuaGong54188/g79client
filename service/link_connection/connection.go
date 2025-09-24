@@ -418,6 +418,28 @@ func (c *LinkConnection) SendChatRequest(serverID int32, method string, data map
 	return c.SendMessage(serverID, method, payload)
 }
 
+// SendGlobalMessage 在世界频道发送文本消息。
+func (c *LinkConnection) SendGlobalMessage(content string) error {
+	if !c.online.Load() {
+		return fmt.Errorf("link_connection.SendGlobalMessage: 连接未登录")
+	}
+	msg := map[string]interface{}{
+		"type":               "text",
+		"quick":              false,
+		"data":               content,
+		"message_visibility": 0,
+	}
+	msgJSON, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	req := map[string]interface{}{
+		"msg":              string(msgJSON),
+		"refer_message_id": "",
+	}
+	return c.SendChatRequest(chatServerID, "SendMessage", req)
+}
+
 // SendGameStart 发送 GameStart，请求订阅公共频道等推送。
 func (c *LinkConnection) SendGameStart(data map[string]interface{}) error {
 	if !c.online.Load() {

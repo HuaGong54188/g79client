@@ -11,6 +11,7 @@ import (
 	"math"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	g79client "github.com/Yeah114/g79client"
@@ -39,6 +40,7 @@ type ChatConnection struct {
 
 	errMu   sync.Mutex
 	lastErr error
+	online  atomic.Bool
 }
 
 func newChatConnection(service *ChatConnectionService, conn net.Conn, entry g79client.ChatServerEntry) *ChatConnection {
@@ -144,6 +146,7 @@ func (c *ChatConnection) handshake(ctx context.Context) error {
 	c.seq = 2
 	c.seqMu.Unlock()
 
+	c.online.Store(true)
 	return nil
 }
 
@@ -210,6 +213,46 @@ func (c *ChatConnection) heartbeatLoop() {
 	}
 }
 
+func (c *ChatConnection) sendMessage(cmd uint16, payload []byte) (uint16, error) {
+	if c.encrypt == nil {
+		return 0, fmt.Errorf("chat_connection.sendMessage: 连接未就绪")
+	}
+
+	c.seqMu.Lock()
+	seq := c.seq
+	if seq == 0 {
+		seq = 1
+	}
+	c.seq++
+	c.seqMu.Unlock()
+
+	head := make([]byte, 2)
+	binary.LittleEndian.PutUint16(head, seq)
+
+	body := make([]byte, 2+len(payload))
+	binary.LittleEndian.PutUint16(body[:2], cmd)
+	copy(body[2:], payload)
+
+	encrypted, err := c.encrypt.Process(body)
+	if err != nil {
+		return 0, fmt.Errorf("chat_connection.sendMessage: 加密失败: %w", err)
+	}
+
+	packet := append(head, encrypted...)
+	if len(packet) > math.MaxUint16 {
+		return 0, fmt.Errorf("chat_connection.sendMessage: 数据过长 %d", len(packet))
+	}
+
+	frame := make([]byte, 2+len(packet))
+	binary.LittleEndian.PutUint16(frame[:2], uint16(len(packet)))
+	copy(frame[2:], packet)
+
+	if err := c.sendRaw(frame); err != nil {
+		return 0, err
+	}
+	return seq, nil
+}
+
 // ChatTo 发送私聊消息，返回本次使用的序列号。
 func (c *ChatConnection) ChatTo(uid any, words string) (uint16, error) {
 	if c == nil {
@@ -246,16 +289,15 @@ func (c *ChatConnection) sendRaw(data []byte) error {
 
 // SendCommand 发送一条聊天命令，并返回使用的序列号。
 func (c *ChatConnection) SendCommand(cmd uint16, payload []byte) (uint16, error) {
-	if c.encrypt == nil {
-		return 0, fmt.Errorf("chat_connection.SendCommand: 连接未完成握手")
-	}
-
 	plain := make([]byte, 2+len(payload))
 	binary.LittleEndian.PutUint16(plain[:2], cmd)
 	copy(plain[2:], payload)
 
 	c.seqMu.Lock()
 	seq := c.seq
+	if seq == 0 {
+		seq = 1
+	}
 	c.seq++
 	c.seqMu.Unlock()
 
@@ -279,6 +321,18 @@ func (c *ChatConnection) SendCommand(cmd uint16, payload []byte) (uint16, error)
 	return seq, nil
 }
 
+// IsOnline 返回连接是否已登录。
+func (c *ChatConnection) IsOnline() bool {
+	return c.online.Load()
+}
+
+// SerialNumber 返回当前序列号。
+func (c *ChatConnection) SerialNumber() uint16 {
+	c.seqMu.Lock()
+	defer c.seqMu.Unlock()
+	return c.seq
+}
+
 // Messages 返回一个只读通道，用于读取服务器推送的消息。
 func (c *ChatConnection) Messages() <-chan Message {
 	return c.messages
@@ -291,6 +345,7 @@ func (c *ChatConnection) Close() error {
 		close(c.closed)
 		err = c.conn.Close()
 		c.wg.Wait()
+		c.online.Store(false)
 	})
 	return err
 }
@@ -311,6 +366,7 @@ func (c *ChatConnection) setError(err error) {
 		c.lastErr = err
 	}
 	c.errMu.Unlock()
+	c.online.Store(false)
 	c.Close()
 }
 

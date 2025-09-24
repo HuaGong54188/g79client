@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/Yeah114/g79client/example/login"
@@ -50,6 +53,8 @@ func main() {
 		fmt.Printf("拉取公共消息失败: %v\n", err)
 	}
 
+	go readAndSend(conn)
+
 	fmt.Println("连接成功，等待服务器消息（Ctrl+C 退出）...")
 
 	for {
@@ -73,6 +78,23 @@ func main() {
 		case <-ctx.Done():
 			fmt.Printf("等待被取消: %v\n", ctx.Err())
 			return
+		}
+	}
+}
+
+func readAndSend(conn *linkconnection.LinkConnection) {
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print("请输入要发送的公屏消息：")
+		if !scanner.Scan() {
+			return
+		}
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" {
+			continue
+		}
+		if err := conn.SendGlobalMessage(text); err != nil {
+			fmt.Printf("发送失败: %v\n", err)
 		}
 	}
 }

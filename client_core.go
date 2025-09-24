@@ -9,14 +9,15 @@ const EngineVersion = "3.5.5.278500"
 
 // Client 结构体
 type Client struct {
-	UserID        string
-	UserToken     string
-	Seed          string
-	ReleaseJSON   *ReleaseJSON
-	EngineVersion string
-	LatestVersion string
-	UserDetail    *UserEntity
-	httpClient    *http.Client
+	UserID           string
+	UserToken        string
+	Seed             string
+	ReleaseJSON      *ReleaseJSON
+	EngineVersion    string
+	LatestVersion    string
+	UserDetail       *UserDetailEntity
+	peUserLoginAfter *PeUserLoginAfterResponse
+	httpClient       *http.Client
 }
 
 // 创建新的客户端
