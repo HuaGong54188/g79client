@@ -65,7 +65,7 @@ func main() {
 	if gameEnter.Code != 0 {
 		log.Fatalf("进入在线大厅游戏失败(%d): %s", gameEnter.Code, gameEnter.Message)
 	}
-	fmt.Printf("在线大厅游戏连接地址: %v:%d\n", gameEnter.Entity.ServerHost, gameEnter.Entity.ServerPort)
+	fmt.Printf("在线大厅游戏连接地址: %v:%v\n", gameEnter.Entity.ServerHost, gameEnter.Entity.ServerPort)
 
 	// 生成 LobbyGame AuthV2（clientKey 需从游戏握手获取，这里仅示例）
 	// 注意：下面 clientKey 为占位符

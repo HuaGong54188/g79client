@@ -30,6 +30,8 @@ type ReleaseJSON struct {
 	ApiGatewayUrl            string `json:"ApiGatewayUrl"`
 	TransferServerUrl        string `json:"TransferServerUrl"`
 	TransferServerNewHttpUrl string `json:"TransferServerNewHttpUrl"`
+	ChatServerURL            string `json:"ChatServerUrl"`
+	LinkServerURL            string `json:"LinkServerUrl"`
 }
 
 type PatchInfo struct {
