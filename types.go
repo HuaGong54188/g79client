@@ -8,6 +8,7 @@ import (
 type Response struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Details string `json:"details"`
 }
 
 // 由于网易的节点代码差异，导致部分响应字段可能返回字符串/浮点数/数字/布尔/空字符串，所以需要一个通用类型来处理

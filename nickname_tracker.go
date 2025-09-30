@@ -57,11 +57,11 @@ func (c *Client) FindPlayerByNickname(nickname string) (*PlayerLocation, error) 
 	}
 
 	// 兜底：在线大厅关键词搜索（匹配房主名/房间名）
-	searchResp, err := c.SearchOnlineLobbyRoomByKeyword(nickname, 20, 0, "1.21.0", "")
+	searchResp, err := c.SearchOnlineLobbyRoomByKeyword(nickname, 20, 0)
 	if err == nil && searchResp != nil && searchResp.Code == 0 {
 		for _, e := range searchResp.Entities {
 			if e.OwnerName == nickname || e.RoomName == nickname || (e.OwnerName != "" && containsFold(e.OwnerName, nickname)) {
-				return &PlayerLocation{RoomID: e.RoomID.String()}, nil
+				return &PlayerLocation{RoomID: e.ID()}, nil
 			}
 		}
 	}

@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-const MainCityVersion = "1.21.1"
-
 // EnterMainCityResponse describes the payload returned by /enter-main-city.
 type EnterMainCityResponse struct {
 	Response
@@ -42,7 +40,7 @@ type EnterMainCityEntity struct {
 func (c *Client) EnterMainCity() (*EnterMainCityResponse, error) {
 	api := "/enter-main-city"
 	payload := map[string]any{
-		"version": MainCityVersion,
+		"version": GameVersion,
 	}
 
 	body, err := json.Marshal(payload)
