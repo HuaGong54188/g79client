@@ -455,6 +455,21 @@ func (c *LinkConnection) SendGameStart(data map[string]interface{}) error {
 	return c.SendMessage(0, "GameStart", payload)
 }
 
+// SendGameStop 发送 GameStop，通知服务器玩家已退出游戏。
+func (c *LinkConnection) SendGameStop(data map[string]interface{}) error {
+	if !c.online.Load() {
+		return fmt.Errorf("link_connection.SendGameStop: 连接未登录")
+	}
+	if data == nil {
+		data = map[string]interface{}{"strict_mode": true}
+	}
+	payload, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	return c.SendMessage(0, "GameStop", payload)
+}
+
 // SendChatOnline 通知服务器进入在线状态。
 func (c *LinkConnection) SendChatOnline() error {
 	return c.SendChatRequest(chatServerID, "Online", nil)
