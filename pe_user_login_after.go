@@ -19,14 +19,6 @@ func (c *Client) GetPeUserLoginAfter() (*PeUserLoginAfterResponse, error) {
 		return c.peUserLoginAfter, nil
 	}
 
-	if c.ReleaseJSON == nil {
-		release, err := c.GetReleaseJSON()
-		if err != nil {
-			return nil, err
-		}
-		c.ReleaseJSON = release
-	}
-
 	api := "/pe-user-login-after"
 	payload := map[string]any{
 		"client_type": "cocos",
@@ -37,7 +29,7 @@ func (c *Client) GetPeUserLoginAfter() (*PeUserLoginAfterResponse, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(body)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}

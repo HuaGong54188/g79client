@@ -50,7 +50,7 @@ type TransferRoomWithNameResponse struct {
 
 // GetTransferRoomWithName 根据房间名查询
 func (c *Client) GetTransferRoomWithName(name string) (*TransferRoomWithNameResponse, error) {
-	apiBase := c.ReleaseJSON.TransferServerNewHttpUrl
+	apiBase := c.G79ReleaseJSON.TransferServerNewHttpUrl
 	api := "/room-with-name"
 	userID, err := strconv.ParseInt(c.UserID, 10, 64)
 	if err != nil {

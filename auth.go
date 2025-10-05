@@ -23,7 +23,7 @@ type LoginResponse struct {
 }
 
 // {'HostNum': 200, 'ServerHostNum': 8000, 'TempServerStop': 0, 'CdnUrl': 'https://g79.gdl.netease.com/', 'H5VersionUrl': 'https://g79.update.netease.com/cdnversion/obt_h5version.json', 'SeadraUrl': 'https://pub-api.seadra.netease.com', 'HomeServerUrl': 'https://g79mclobthome.minecraft.cn', 'HomeServerGrayUrl': 'https://g79mclobthomegray.nie.netease.com:9443', 'WebServerUrl': 'https://g79mclobt.minecraft.cn', 'WebServerGrayUrl': 'https://g79mclobtgray.nie.netease.com:9443', 'CoreServerUrl': 'https://g79obtapigtcoregray.minecraft.cn', 'CoreServerGrayUrl': 'https://g79obtapigtcoregray.minecraft.cn', 'TransferServerUrl': 'https://g79.update.netease.com/transferserver_obt_new.list', 'TransferServerHttpUrl': 'https://g79transfernew.nie.netease.com', 'TransferServerNewHttpUrl': 'https://g79mcltransfer.minecraft.cn', 'MomentUrl': 'https://x19-pyq.webcgi.163.com/', 'ForumUrl': 'https://mcpel-web.16163.com', 'AuthServerUrl': 'https://g79authobt.minecraft.cn', 'ChatServerUrl': 'https://x19.update.netease.com/chatserver.list', 'PathNUrl': 'https://impression.update.netease.com/lighten/atlas_x19_hangzhou-{isp}.txt', 'PePathNUrl': 'https://impression.update.netease.com/lighten/atlas_g79_hangzhou-{isp}.txt', 'PathNIpv6Url': 'https://impression.update.netease.com/lighten/x19/cnv6.txt', 'PePathNIpv6Url': 'https://impression.update.netease.com/lighten/g79/cnv6.txt', 'LinkServerUrl': 'https://g79.update.netease.com/linkserver_obt.list', 'ApiGatewayUrl': 'https://g79apigatewayobt.minecraft.cn', 'ApiGatewayWeiXinUrl': 'https://g79apigatewayobtweixin.minecraft.cn', 'ApiGatewayGrayUrl': 'https://g79apigatewaygrayobt.nie.netease.com', 'communityHost': 'https://news-api.16163.com/app/g79/api', 'WelfareUrl': 'https://mc.163.com/pe/client/', 'DCWebUrl': 'https://x19apigatewayobt.nie.netease.com', 'RentalTransferUrl': 'https://mcrealms.update.netease.com/isp_map_production.json', 'MgbSdkUrl': 'https://mgbsdk.matrix.netease.com'}
-type ReleaseJSON struct {
+type G79ReleaseJSON struct {
 	CoreServerURL            string `json:"CoreServerUrl"`
 	AuthServerURL            string `json:"AuthServerUrl"`
 	WebServerUrl             string `json:"WebServerUrl"`
@@ -90,16 +90,6 @@ func (c *Client) AuthenticateWithCookie(cookieStr string) error {
 	c.UserDetail = &userDetail.Entity
 
 	return nil
-}
-
-// 获取最新版本
-func (c *Client) GetLatestVersion() (string, error) {
-	return GetGlobalLatestVersion()
-}
-
-// 获取服务器配置
-func (c *Client) GetReleaseJSON() (*ReleaseJSON, error) {
-	return GetGlobalReleaseJSON()
 }
 
 // 使用Cookie执行PE认证
@@ -178,7 +168,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 	}
 
 	// 发送认证请求
-	req, err := http.NewRequest("POST", c.ReleaseJSON.CoreServerURL+"/pe-authentication", strings.NewReader(hex.EncodeToString(encryptedPayload)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.CoreServerURL+"/pe-authentication", strings.NewReader(hex.EncodeToString(encryptedPayload)))
 	if err != nil {
 		return err
 	}
@@ -302,7 +292,7 @@ func (c *Client) SendAuthV2Request(authv2Data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.ReleaseJSON.AuthServerURL+api, strings.NewReader(hex.EncodeToString(encryptedData)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.AuthServerURL+api, strings.NewReader(hex.EncodeToString(encryptedData)))
 	if err != nil {
 		return nil, err
 	}

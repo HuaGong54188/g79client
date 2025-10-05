@@ -9,9 +9,11 @@ import (
 var EngineVersion = "3.5.5.278500"
 
 func Refetch() {
-	_, _ = RefreshTransferServers()
-	_, _ = RefreshLinkServers()
+	//_, _ = RefreshLatestVersion()
+	_, _ = RefreshPackList()
 	_, _ = RefreshChatServers()
+	_, _ = RefreshLinkServers()
+	_, _ = RefreshTransferServers()
 	packList, _ := RefreshPackList()
 	neteasePack, ok := packList["netease"]
 	if ok {
@@ -34,7 +36,7 @@ type Client struct {
 	UserID           string
 	UserToken        string
 	Seed             string
-	ReleaseJSON      *ReleaseJSON
+	G79ReleaseJSON   *G79ReleaseJSON
 	EngineVersion    string
 	LatestVersion    string
 	UserDetail       *UserDetailEntity
@@ -53,7 +55,7 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.ReleaseJSON, err = GetGlobalReleaseJSON()
+	c.G79ReleaseJSON, err = GetGlobalG79ReleaseJSON()
 	if err != nil {
 		return nil, err
 	}

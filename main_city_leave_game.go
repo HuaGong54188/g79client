@@ -16,14 +16,6 @@ func (c *Client) LeaveEnteredGame() error {
 		return fmt.Errorf("leave entered game: missing user id")
 	}
 
-	if c.ReleaseJSON == nil {
-		release, err := c.GetReleaseJSON()
-		if err != nil {
-			return fmt.Errorf("leave entered game: %w", err)
-		}
-		c.ReleaseJSON = release
-	}
-
 	if c.UserDetail == nil {
 		if detail, err := c.GetUserDetail(); err == nil {
 			c.UserDetail = &detail.Entity
@@ -36,7 +28,6 @@ func (c *Client) LeaveEnteredGame() error {
 	}
 
 	sessionID := fmt.Sprintf("%s%d", c.UserID, time.Now().UnixNano())
-
 
 	payload := map[string]any{
 		"is_emulator":       "None",
@@ -73,14 +64,14 @@ func (c *Client) LeaveEnteredGame() error {
 		"is_root":           "None",
 		"role_name":         roleName,
 		"imei":              "None",
-		"WebServerUrl":      c.ReleaseJSON.WebServerUrl,
+		"WebServerUrl":      c.G79ReleaseJSON.WebServerUrl,
 		"common_str2":       "",
 		"sub_type":          "",
 		"common_str1":       "",
 		"main_type":         "main_city",
 		"device_model":      "UNKNOWN",
 		"patchVersion":      "None",
-		"server":            c.ReleaseJSON.CoreServerURL,
+		"server":            c.G79ReleaseJSON.CoreServerURL,
 		"project":           "g79",
 		"udid":              c.UserID,
 		"caid":              "None",

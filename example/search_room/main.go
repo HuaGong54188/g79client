@@ -43,7 +43,7 @@ func main() {
 	b, _ := json.Marshal(body)
 	doRequest := func() (int, []byte, map[string]any) {
 		token := g79client.CalculateDynamicToken(api, string(b), client.UserToken)
-		req, err := http.NewRequest("POST", client.ReleaseJSON.ApiGatewayUrl+api, bytes.NewReader(b))
+		req, err := http.NewRequest("POST", client.G79ReleaseJSON.ApiGatewayUrl+api, bytes.NewReader(b))
 		if err != nil {
 			log.Fatalf("构造请求失败: %v", err)
 		}

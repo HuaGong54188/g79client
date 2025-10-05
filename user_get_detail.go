@@ -114,15 +114,7 @@ type UserGuideTriggerVideo struct {
 // 获取用户详情
 func (c *Client) GetUserDetail() (*UserDetailResponse, error) {
 	api := "/pe-user-detail/get"
-
-	if c.ReleaseJSON == nil {
-		release, err := c.GetReleaseJSON()
-		if err != nil {
-			return nil, err
-		}
-		c.ReleaseJSON = release
-	}
-
+	
 	requestData := map[string]interface{}{}
 
 	jsonData, err := json.Marshal(requestData)
@@ -130,7 +122,7 @@ func (c *Client) GetUserDetail() (*UserDetailResponse, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.ReleaseJSON.CoreServerURL+api, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.CoreServerURL+api, strings.NewReader(string(jsonData)))
 	if err != nil {
 		return nil, err
 	}

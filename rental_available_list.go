@@ -9,22 +9,22 @@ import (
 
 // 租赁服条目
 type RentalServerEntity struct {
-	EntityID    Uncertain `json:"entity_id"` // 唯一ID
-	Name        Uncertain `json:"name"` // 租赁服号
-	Visibility  Uncertain `json:"visibility"` // 可见性
-	Status      Uncertain `json:"status"` // 状态
-	Capacity    Uncertain `json:"capacity"` // 容量
-	McVersion   string    `json:"mc_version"` // 版本
+	EntityID    Uncertain `json:"entity_id"`    // 唯一ID
+	Name        Uncertain `json:"name"`         // 租赁服号
+	Visibility  Uncertain `json:"visibility"`   // 可见性
+	Status      Uncertain `json:"status"`       // 状态
+	Capacity    Uncertain `json:"capacity"`     // 容量
+	McVersion   string    `json:"mc_version"`   // 版本
 	PlayerCount Uncertain `json:"player_count"` // 最大人数
-	LikeNum     Uncertain `json:"like_num"` // 点赞数
-	ServerType  string    `json:"server_type"` // 类型
-	Offset      Uncertain `json:"offset"` // 偏移量
-	HasPwd      Uncertain `json:"has_pwd"` // 是否需要密码
-	ImageURL    string    `json:"image_url"` // 租赁服头像URL
-	WorldID     string    `json:"world_id"` // 世界ID
-	MinLevel    Uncertain `json:"min_level"` // 最小加入等级
-	PVP         Uncertain `json:"pvp"` // 是否允许PVP
-	ServerName  string    `json:"server_name"` // 名称
+	LikeNum     Uncertain `json:"like_num"`     // 点赞数
+	ServerType  string    `json:"server_type"`  // 类型
+	Offset      Uncertain `json:"offset"`       // 偏移量
+	HasPwd      Uncertain `json:"has_pwd"`      // 是否需要密码
+	ImageURL    string    `json:"image_url"`    // 租赁服头像URL
+	WorldID     string    `json:"world_id"`     // 世界ID
+	MinLevel    Uncertain `json:"min_level"`    // 最小加入等级
+	PVP         Uncertain `json:"pvp"`          // 是否允许PVP
+	ServerName  string    `json:"server_name"`  // 名称
 }
 
 // 批量拉取可用租赁服响应
@@ -35,10 +35,10 @@ type GetAvailableRentalServersResponse struct {
 }
 
 const (
-	SortTypePlayerCount = iota // 在线人数
-	SortTypeNewest             // 最新
-	SortTypeMostPopular        // 最受欢迎
-	SortTypeComprehensive      // 综合
+	SortTypePlayerCount   = iota // 在线人数
+	SortTypeNewest               // 最新
+	SortTypeMostPopular          // 最受欢迎
+	SortTypeComprehensive        // 综合
 )
 
 const (
@@ -64,7 +64,7 @@ func (c *Client) GetAvailableRentalServers(sortType int, orderType int, offset i
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
 	if err != nil {
 		return nil, err
 	}

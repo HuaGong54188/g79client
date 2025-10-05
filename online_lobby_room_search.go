@@ -72,7 +72,7 @@ func (c *Client) SearchOnlineLobbyRoomByKeyword(keyword string, length, offset i
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
 	if err != nil {
 		return nil, err
 	}
