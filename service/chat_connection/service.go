@@ -16,7 +16,7 @@ import (
 type ServerEndpoint struct {
 	Host  string
 	Port  int
-	Entry g79client.ChatServerEntry
+	Entry g79client.G79ChatServerEntry
 }
 
 // ChatConnectionService 负责全局聊天服务器列表的获取与连接管理。
@@ -24,18 +24,18 @@ type ChatConnectionService struct {
 	client *g79client.Client
 
 	mu      sync.RWMutex
-	servers []g79client.ChatServerEntry
+	servers []g79client.G79ChatServerEntry
 
 	randMu sync.Mutex
 	rnd    *rand.Rand
 }
 
 // ispHostFallback 不同 ISP 对应的域名字段。
-var ispHostFallback = map[int]func(g79client.ChatServerEntry) string{
-	10000: func(entry g79client.ChatServerEntry) string { return entry.CTCCHost },
-	10010: func(entry g79client.ChatServerEntry) string { return entry.CUCCHost },
-	10086: func(entry g79client.ChatServerEntry) string { return entry.CMCCHost },
-	0:     func(entry g79client.ChatServerEntry) string { return entry.IP },
+var ispHostFallback = map[int]func(g79client.G79ChatServerEntry) string{
+	10000: func(entry g79client.G79ChatServerEntry) string { return entry.CTCCHost },
+	10010: func(entry g79client.G79ChatServerEntry) string { return entry.CUCCHost },
+	10086: func(entry g79client.G79ChatServerEntry) string { return entry.CMCCHost },
+	0:     func(entry g79client.G79ChatServerEntry) string { return entry.IP },
 }
 
 // NewChatConnectionService 根据 G79 客户端实例构建聊天连接服务。
@@ -58,7 +58,7 @@ func NewChatConnectionService(client *g79client.Client) (*ChatConnectionService,
 }
 
 func (s *ChatConnectionService) primeServers() error {
-	list, err := g79client.GetGlobalChatServers()
+	list, err := g79client.GetGlobalG79ChatServers()
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (s *ChatConnectionService) Client() *g79client.Client {
 }
 
 // Servers 返回当前缓存的聊天服务器列表。
-func (s *ChatConnectionService) Servers() ([]g79client.ChatServerEntry, error) {
+func (s *ChatConnectionService) Servers() ([]g79client.G79ChatServerEntry, error) {
 	s.mu.RLock()
 	if s.servers != nil {
 		list := cloneChatServers(s.servers)
@@ -86,8 +86,8 @@ func (s *ChatConnectionService) Servers() ([]g79client.ChatServerEntry, error) {
 }
 
 // RefreshServers 强制刷新聊天服务器列表。
-func (s *ChatConnectionService) RefreshServers() ([]g79client.ChatServerEntry, error) {
-	list, err := g79client.RefreshChatServers()
+func (s *ChatConnectionService) RefreshServers() ([]g79client.G79ChatServerEntry, error) {
+	list, err := g79client.RefreshG79ChatServers()
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (s *ChatConnectionService) DialWithEndpoint(ctx context.Context, endpoint *
 	return chatConn, nil
 }
 
-func (s *ChatConnectionService) pickRandom(servers []g79client.ChatServerEntry) g79client.ChatServerEntry {
+func (s *ChatConnectionService) pickRandom(servers []g79client.G79ChatServerEntry) g79client.G79ChatServerEntry {
 	if len(servers) == 1 {
 		return servers[0]
 	}
@@ -165,7 +165,7 @@ func (s *ChatConnectionService) pickRandom(servers []g79client.ChatServerEntry) 
 	return servers[idx]
 }
 
-func resolveHostByISP(entry g79client.ChatServerEntry, ispID int) string {
+func resolveHostByISP(entry g79client.G79ChatServerEntry, ispID int) string {
 	if entry.IspEnabled.Bool() {
 		if getter, ok := ispHostFallback[ispID]; ok {
 			if host := getter(entry); host != "" {
@@ -189,11 +189,11 @@ func resolveHostByISP(entry g79client.ChatServerEntry, ispID int) string {
 	return ""
 }
 
-func cloneChatServers(src []g79client.ChatServerEntry) []g79client.ChatServerEntry {
+func cloneChatServers(src []g79client.G79ChatServerEntry) []g79client.G79ChatServerEntry {
 	if len(src) == 0 {
 		return nil
 	}
-	dst := make([]g79client.ChatServerEntry, len(src))
+	dst := make([]g79client.G79ChatServerEntry, len(src))
 	copy(dst, src)
 	return dst
 }

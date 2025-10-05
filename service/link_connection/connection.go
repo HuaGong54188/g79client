@@ -71,7 +71,7 @@ type loginResult struct {
 // LinkConnection 表示一个活跃的 Link 连接。
 type LinkConnection struct {
 	service *LinkConnectionService
-	entry   g79client.LinkServerEntry
+	entry   g79client.G79LinkServerEntry
 	conn    net.Conn
 
 	cipherR1 []byte
@@ -100,7 +100,7 @@ type LinkConnection struct {
 	online atomic.Bool
 }
 
-func newLinkConnection(service *LinkConnectionService, conn net.Conn, entry g79client.LinkServerEntry) (*LinkConnection, error) {
+func newLinkConnection(service *LinkConnectionService, conn net.Conn, entry g79client.G79LinkServerEntry) (*LinkConnection, error) {
 	c := &LinkConnection{
 		service:    service,
 		entry:      entry,

@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	servers, err := g79client.GetGlobalTransferServers()
+	servers, err := g79client.GetGlobalG79TransferServers()
 	if err != nil {
 		fmt.Printf("获取传输服务器列表失败: %v", err)
 	}

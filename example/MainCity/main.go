@@ -18,7 +18,7 @@ func main() {
 	}
 
 	// 认证
-	if err := client.AuthenticateWithCookie(cookie); err != nil {
+	if err := client.G79AuthenticateWithCookie(cookie); err != nil {
 		log.Fatalf("认证失败: %v", err)
 	}
 

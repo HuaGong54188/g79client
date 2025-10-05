@@ -15,7 +15,7 @@ func Login() (*g79client.Client, error) {
 	}
 
 	// 认证
-	if err := client.AuthenticateWithCookie(cookie); err != nil {
+	if err := client.G79AuthenticateWithCookie(cookie); err != nil {
 		return nil, fmt.Errorf("认证失败: %v", err)
 	}
 

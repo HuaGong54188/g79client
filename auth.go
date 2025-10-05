@@ -1,10 +1,12 @@
 package g79client
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -34,6 +36,26 @@ type G79ReleaseJSON struct {
 	LinkServerURL            string `json:"LinkServerUrl"`
 }
 
+type X19ReleaseJSON struct {
+	CoreServerURL              string `json:"CoreServerUrl"`
+	WebServerURL               string `json:"WebServerUrl"`
+	WebServerGrayURL           string `json:"WebServerGrayUrl"`
+	TransferServerURL          string `json:"TransferServerUrl"`
+	TransferServerHTTPURL      string `json:"TransferServerHttpUrl"`
+	PeTransferServerURL        string `json:"PeTransferServerUrl"`
+	PeTransferServerHTTPURL    string `json:"PeTransferServerHttpUrl"`
+	PeTransferServerNewHTTPURL string `json:"PeTransferServerNewHttpUrl"`
+	AuthServerURL              string `json:"AuthServerUrl"`
+	AuthServerCppURL           string `json:"AuthServerCppUrl"`
+	ChatServerURL              string `json:"ChatServerUrl"`
+	ApiGatewayURL              string `json:"ApiGatewayUrl"`
+	ApiGatewayGrayURL          string `json:"ApiGatewayGrayUrl"`
+	DCWebURL                   string `json:"DCWebUrl"`
+	RentalTransferURL          string `json:"RentalTransferUrl"`
+}
+
+const x19DefaultVersion = "1.15.7.20505"
+
 type PatchInfo struct {
 	IOS []string `json:"ios"`
 }
@@ -61,7 +83,7 @@ type SauthData struct {
 }
 
 // 使用Cookie进行PE认证
-func (c *Client) AuthenticateWithCookie(cookieStr string) error {
+func (c *Client) G79AuthenticateWithCookie(cookieStr string) error {
 	// 解析Cookie
 	var cookieData CookieData
 	err := json.Unmarshal([]byte(cookieStr), &cookieData)
@@ -76,7 +98,7 @@ func (c *Client) AuthenticateWithCookie(cookieStr string) error {
 	}
 
 	// 执行PE认证
-	err = c.performPEAuthWithCookie(&sauthData)
+	err = c.g79PerformPEAuthWithCookie(&sauthData)
 	if err != nil {
 		return fmt.Errorf("PE认证失败: %v", err)
 	}
@@ -93,7 +115,7 @@ func (c *Client) AuthenticateWithCookie(cookieStr string) error {
 }
 
 // 使用Cookie执行PE认证
-func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
+func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	seed := uuid.New().String()
 	messagePart := "2b3e7ca013bb30a74d822579860c042b"
 	clientLoginSN := "db797f983ca314e00626b9212705d8cc"
@@ -117,7 +139,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 
 	saData := map[string]any{
 		"app_channel":   "app_store",
-		"app_ver":       c.LatestVersion,
+		"app_ver":       c.G79LatestVersion,
 		"core_num":      "6",
 		"cpu_digit":     "0",
 		"cpu_hz":        "",
@@ -147,8 +169,8 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 	peauth := map[string]any{
 		"engine_version": c.EngineVersion,
 		"extra_param":    "extra",
-		"message":        fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.LatestVersion, messagePart, seed),
-		"patch_version":  c.LatestVersion,
+		"message":        fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.G79LatestVersion, messagePart, seed),
+		"patch_version":  c.G79LatestVersion,
 		"pay_channel":    "",
 		"sa_data":        string(saDataJSON),
 		"sauth_json":     sauthJSON,
@@ -162,7 +184,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 		return err
 	}
 
-	encryptedPayload, err := HttpEncrypt(peauthJSON)
+	encryptedPayload, err := G79HttpEncrypt(peauthJSON)
 	if err != nil {
 		return err
 	}
@@ -194,7 +216,7 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 		return err
 	}
 
-	decryptedResp, err := HttpDecrypt(encryptedResp)
+	decryptedResp, err := G79HttpDecrypt(encryptedResp)
 	if err != nil {
 		return err
 	}
@@ -218,6 +240,251 @@ func (c *Client) performPEAuthWithCookie(sauthData *SauthData) error {
 	return nil
 }
 
+type X19LoginOTPResponse struct {
+	Response
+	Entity X19LoginOTPEntity `json:"entity"`
+}
+
+type X19LoginOTPEntity struct {
+	OTP          int    `json:"otp"`
+	OTPToken     string `json:"otp_token"`
+	AID          int    `json:"aid"`
+	LockTime     int    `json:"lock_time"`
+	OpenOTP      int    `json:"open_otp"`
+	VerifyStatus int    `json:"verify_status"`
+}
+
+func (c *Client) X19AuthenticateWithCookie(cookieStr string) error {
+	// 解析Cookie
+	var cookieData CookieData
+	err := json.Unmarshal([]byte(cookieStr), &cookieData)
+	if err != nil {
+		return fmt.Errorf("解析Cookie失败: %v", err)
+	}
+	// 解析 sauth_json
+	var sauthData SauthData
+	err = json.Unmarshal([]byte(cookieData.SauthJSON), &sauthData)
+	if err != nil {
+		return fmt.Errorf("解析 sauth_json 失败: %v", err)
+	}
+
+	// 发送认证请求
+	req, err := http.NewRequest("POST", c.X19ReleaseJSON.CoreServerURL+"/login-otp", strings.NewReader(cookieStr))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("User-Agent", "libhttpclient/1.0.0.0")
+	req.Header.Set("Accept-Encoding", "gzip")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	respBody, err := readResponseBody(resp)
+	if err != nil {
+		return err
+	}
+	var loginResp X19LoginOTPResponse
+	if err := json.Unmarshal(respBody, &loginResp); err != nil {
+		return fmt.Errorf("解析登录响应失败: %v, 响应内容: %s", err, string(respBody))
+	}
+
+	if loginResp.Code != 0 {
+		return fmt.Errorf("登录失败 (code: %d): %s", loginResp.Code, loginResp.Message)
+	}
+	if loginResp.Entity.OTPToken == "" {
+		return fmt.Errorf("登录响应缺少 otp_token")
+	}
+
+	/*
+		var sauthMap map[string]any
+		if err := json.Unmarshal([]byte(cookieData.SauthJSON), &sauthMap); err != nil {
+			return fmt.Errorf("解析 sauth_json 失败: %v", err)
+		}
+
+		getString := func(key string) (string, error) {
+			val, ok := sauthMap[key]
+			if !ok {
+				return "", fmt.Errorf("sauth_json 缺少字段 %s", key)
+			}
+			str, ok := val.(string)
+			if !ok {
+				return "", fmt.Errorf("sauth_json 字段 %s 类型错误", key)
+			}
+			return str, nil
+		}
+
+		sdkUID, err := getString("sdkuid")
+		if err != nil {
+			return err
+		}
+		sessionID, err := getString("sessionid")
+		if err != nil {
+			return err
+		}
+		udid, err := getString("udid")
+		if err != nil {
+			return err
+		}
+		deviceID, err := getString("deviceid")
+		if err != nil {
+			return err
+		}
+	*/
+
+	saData := map[string]any{
+		"os_name":       "windows",
+		"os_ver":        "Microsoft Windows 10",
+		"mac_addr":      "B8975A4AD616",
+		"udid":          "BFEBFBFF000306A9C78C00D8",
+		"app_ver":       x19DefaultVersion,
+		"sdk_ver":       "",
+		"network":       "",
+		"disk":          "C78C00D8",
+		"is64bit":       "1",
+		"video_card1":   "Video_card1",
+		"video_card2":   "",
+		"video_card3":   "",
+		"video_card4":   "",
+		"launcher_type": "PC_java",
+		"pay_channel":   "4399pc",
+		"dotnet_ver":    "4.8.0",
+		"cpu_type":      "Intel(R) Xeon(R) CPU i32100 3.10GHz",
+		"ram_size":      "8553332736",
+		"device_width":  "1920",
+		"device_height": "1080",
+		"os_detail":     "10",
+	}
+	saDataJSON, err := json.Marshal(saData)
+	if err != nil {
+		return fmt.Errorf("序列化 sa_data 失败: %v", err)
+	}
+
+	/*
+		aimInfo := map[string]string{
+			"code_1":  `{"code":"AS","names":{"en":"Asia"}}`,
+			"code_2":  `{"iso_code":"CN","names":{"en":"China"}}`,
+			"code_3":  `{"iso_code":"51","names":{"en":"Sichuan"}}`,
+			"code_4":  `{"id":5101,"names":{"en":"Chengdu"}}`,
+			"isp":     `{"id":10086,"names":{"en":""}}`,
+			"aim":     "100.100.100.100",
+			"country": "CN",
+			"tz":      "+0800",
+			"tzid":    "",
+		}
+		aimInfoJSON, err := json.Marshal(aimInfo)
+		if err != nil {
+			return fmt.Errorf("序列化 aim_info 失败: %v", err)
+		}
+
+		saAuthJSON := map[string]any{
+			"gameid":        "x19",
+			"login_channel": "netease",
+			"app_channel":   "netease",
+			"platform":      "pc",
+			"sdkuid":        sdkUID,
+			"sessionid":     sessionID,
+			"sdk_version":   "4.10.0",
+			"udid":          udid,
+			"deviceid":      deviceID,
+			"aim_info":     sauthData.AimInfo,
+			"client_login_sn": sauthData.ClientLoginSN,
+			"gas_token":       sauthData.GasToken,
+			"source_platform": "pc",
+			"ip":              sauthData.IP,
+			"get_access_token": "1",
+		}
+		saAuthJSONBytes, err := json.Marshal(saAuthJSON)
+		if err != nil {
+			return fmt.Errorf("序列化 sauth_json 失败: %v", err)
+		}
+	*/
+	authData := map[string]any{
+		"sa_data":    string(saDataJSON),
+		"sauth_json": cookieData.SauthJSON,
+		"version": map[string]any{
+			"version":      x19DefaultVersion,
+			"launcher_md5": nil,
+			"updater_md5":  nil,
+		},
+		"sdkuid":             nil,
+		"aid":                strconv.Itoa(loginResp.Entity.AID),
+		"hasMessage":         false,
+		"hasGmail":           false,
+		"otp_token":          loginResp.Entity.OTPToken,
+		"otp_pwd":            nil,
+		"lock_time":          loginResp.Entity.LockTime,
+		"env":                nil,
+		"min_engine_version": nil,
+		"min_patch_version":  nil,
+		"unisdk_login_json":  nil,
+		"verify_status":      loginResp.Entity.VerifyStatus,
+		"token":              nil,
+		"is_register":        true,
+		"entity_id":          nil,
+	}
+
+	authPayloadBytes, err := json.Marshal(authData)
+	if err != nil {
+		return fmt.Errorf("序列化认证载荷失败: %v", err)
+	}
+	authPayload := string(authPayloadBytes)
+	encryptedAuthPayload, err := X19HttpEncrypt(authPayloadBytes)
+	if err != nil {
+		return fmt.Errorf("加密认证载荷失败: %v", err)
+	}
+	authReq, err := http.NewRequest("POST", c.X19ReleaseJSON.CoreServerURL+"/authentication-otp", bytes.NewReader(encryptedAuthPayload))
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %v", err)
+	}
+	authReq.Header.Set("User-Agent", "libhttpclient/1.0.0.0")
+	authReq.Header.Set("Accept-Encoding", "gzip")
+	authReq.Header.Set("Content-Type", "application/json")
+	authReq.Header.Set("user-id", "")
+	authReq.Header.Set("user-token", CalculateDynamicToken("/authentication-otp", authPayload, ""))
+
+	authResp, err := http.DefaultClient.Do(authReq)
+	if err != nil {
+		return fmt.Errorf("发送请求失败: %v", err)
+	}
+	defer authResp.Body.Close()
+
+	authRespBody, err := readResponseBody(authResp)
+	if err != nil {
+		return fmt.Errorf("读取响应失败: %v", err)
+	}
+
+	decryptedAuthResp, err := X19HttpDecrypt(authRespBody)
+	if err != nil {
+		return fmt.Errorf("解密响应失败: %v", err)
+	}
+
+	validAuthRespJSON := GetValidJSON(decryptedAuthResp)
+	var loginRespData LoginResponse
+	if err := json.Unmarshal(validAuthRespJSON, &loginRespData); err != nil {
+		return fmt.Errorf("解析登录响应失败: %v", err)
+	}
+	if loginRespData.Code != 0 {
+		return fmt.Errorf("登录失败 (code: %d): %s", loginRespData.Code, loginRespData.Message)
+	}
+
+	// 设置用户凭证
+	c.SetCredentials(loginRespData.Entity.EntityID, loginRespData.Entity.Token)
+	c.Seed = loginRespData.Entity.Seed
+
+	// 获取用户详情
+	userDetail, err := c.GetUserDetail()
+	if err != nil {
+		return fmt.Errorf("获取用户信息失败: %v", err)
+	}
+	c.UserDetail = &userDetail.Entity
+	return nil
+}
+
 var OSName = "android"
 
 // 生成租赁服认证v2数据
@@ -234,7 +501,7 @@ func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, e
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:RentalGame", serverID),
 		"os_name":       OSName,
-		"patchVersion":  c.LatestVersion,
+		"patchVersion":  c.G79LatestVersion,
 		"uid":           uid,
 	}
 
@@ -255,7 +522,7 @@ func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, erro
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:LobbyGame", roomID),
 		"os_name":       OSName,
-		"patchVersion":  c.LatestVersion,
+		"patchVersion":  c.G79LatestVersion,
 		"uid":           uid,
 	}
 
@@ -276,7 +543,7 @@ func (c *Client) GenerateNetworkGameAuthV2(roomID, clientKey string) ([]byte, er
 		"engineVersion": c.EngineVersion,
 		"netease_sid":   fmt.Sprintf("%s:NetworkGame", roomID),
 		"os_name":       OSName,
-		"patchVersion":  c.LatestVersion,
+		"patchVersion":  c.G79LatestVersion,
 		"uid":           uid,
 	}
 
@@ -287,7 +554,7 @@ func (c *Client) GenerateNetworkGameAuthV2(roomID, clientKey string) ([]byte, er
 func (c *Client) SendAuthV2Request(authv2Data []byte) ([]byte, error) {
 	api := "/authentication-v2"
 
-	encryptedData, err := HttpEncrypt(authv2Data)
+	encryptedData, err := G79HttpEncrypt(authv2Data)
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +588,7 @@ func (c *Client) SendAuthV2Request(authv2Data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	decryptedResp, err := HttpDecrypt(encryptedResp)
+	decryptedResp, err := G79HttpDecrypt(encryptedResp)
 	if err != nil {
 		return nil, err
 	}

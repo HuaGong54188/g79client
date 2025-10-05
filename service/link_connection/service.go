@@ -14,7 +14,7 @@ import (
 
 // LinkEndpoint 描述一个可用的 Link 服务器节点。
 type LinkEndpoint struct {
-	Entry g79client.LinkServerEntry
+	Entry g79client.G79LinkServerEntry
 }
 
 // LinkConnectionService 管理 Link 服务器列表与连接创建。
@@ -22,7 +22,7 @@ type LinkConnectionService struct {
 	client *g79client.Client
 
 	mu      sync.RWMutex
-	servers []g79client.LinkServerEntry
+	servers []g79client.G79LinkServerEntry
 
 	randMu sync.Mutex
 	rnd    *rand.Rand
@@ -47,7 +47,7 @@ func NewLinkConnectionService(client *g79client.Client) (*LinkConnectionService,
 }
 
 func (s *LinkConnectionService) primeServers() error {
-	list, err := g79client.GetGlobalLinkServers()
+	list, err := g79client.GetGlobalG79LinkServers()
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (s *LinkConnectionService) Client() *g79client.Client {
 }
 
 // Servers 返回缓存的服务器列表，如果缓存为空则尝试刷新。
-func (s *LinkConnectionService) Servers() ([]g79client.LinkServerEntry, error) {
+func (s *LinkConnectionService) Servers() ([]g79client.G79LinkServerEntry, error) {
 	s.mu.RLock()
 	if s.servers != nil {
 		list := cloneLinkServers(s.servers)
@@ -75,8 +75,8 @@ func (s *LinkConnectionService) Servers() ([]g79client.LinkServerEntry, error) {
 }
 
 // RefreshServers 强制刷新服务器列表缓存。
-func (s *LinkConnectionService) RefreshServers() ([]g79client.LinkServerEntry, error) {
-	list, err := g79client.RefreshLinkServers()
+func (s *LinkConnectionService) RefreshServers() ([]g79client.G79LinkServerEntry, error) {
+	list, err := g79client.RefreshG79LinkServers()
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (s *LinkConnectionService) DialEndpoint(ctx context.Context, endpoint *Link
 	return linkConn, nil
 }
 
-func (s *LinkConnectionService) pickRandom(servers []g79client.LinkServerEntry) g79client.LinkServerEntry {
+func (s *LinkConnectionService) pickRandom(servers []g79client.G79LinkServerEntry) g79client.G79LinkServerEntry {
 	if len(servers) == 1 {
 		return servers[0]
 	}
@@ -152,11 +152,11 @@ func (s *LinkConnectionService) pickRandom(servers []g79client.LinkServerEntry) 
 	return servers[idx]
 }
 
-func cloneLinkServers(src []g79client.LinkServerEntry) []g79client.LinkServerEntry {
+func cloneLinkServers(src []g79client.G79LinkServerEntry) []g79client.G79LinkServerEntry {
 	if len(src) == 0 {
 		return nil
 	}
-	dst := make([]g79client.LinkServerEntry, len(src))
+	dst := make([]g79client.G79LinkServerEntry, len(src))
 	copy(dst, src)
 	return dst
 }

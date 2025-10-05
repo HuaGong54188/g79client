@@ -9,12 +9,14 @@ import (
 var EngineVersion = "3.5.5.278500"
 
 func Refetch() {
-	//_, _ = RefreshLatestVersion()
-	_, _ = RefreshPackList()
-	_, _ = RefreshChatServers()
-	_, _ = RefreshLinkServers()
-	_, _ = RefreshTransferServers()
-	packList, _ := RefreshPackList()
+	_, _ = RefreshG79LatestVersion()
+	_, _ = RefreshG79ReleaseJSON()
+	_, _ = RefreshX19ReleaseJSON()
+	_, _ = RefreshG79PackList()
+	_, _ = RefreshG79ChatServers()
+	_, _ = RefreshG79LinkServers()
+	_, _ = RefreshG79TransferServers()
+	packList, _ := RefreshG79PackList()
 	neteasePack, ok := packList["netease"]
 	if ok {
 		EngineVersion = neteasePack.Version
@@ -37,8 +39,9 @@ type Client struct {
 	UserToken        string
 	Seed             string
 	G79ReleaseJSON   *G79ReleaseJSON
+	X19ReleaseJSON   *X19ReleaseJSON
 	EngineVersion    string
-	LatestVersion    string
+	G79LatestVersion string
 	UserDetail       *UserDetailEntity
 	peUserLoginAfter *PeUserLoginAfterResponse
 	httpClient       *http.Client
@@ -51,11 +54,15 @@ func NewClient() (*Client, error) {
 		httpClient:    &http.Client{},
 	}
 	var err error
-	c.LatestVersion, err = GetGlobalLatestVersion()
+	c.G79LatestVersion, err = GetGlobalG79LatestVersion()
 	if err != nil {
 		return nil, err
 	}
 	c.G79ReleaseJSON, err = GetGlobalG79ReleaseJSON()
+	if err != nil {
+		return nil, err
+	}
+	c.X19ReleaseJSON, err = GetGlobalX19ReleaseJSON()
 	if err != nil {
 		return nil, err
 	}

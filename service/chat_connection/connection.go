@@ -21,7 +21,7 @@ import (
 // ChatConnection 表示一个与聊天服务器的活跃连接。
 type ChatConnection struct {
 	service *ChatConnectionService
-	entry   g79client.ChatServerEntry
+	entry   g79client.G79ChatServerEntry
 	conn    net.Conn
 
 	encrypt *utils.ChaChaEngine
@@ -43,7 +43,7 @@ type ChatConnection struct {
 	online  atomic.Bool
 }
 
-func newChatConnection(service *ChatConnectionService, conn net.Conn, entry g79client.ChatServerEntry) *ChatConnection {
+func newChatConnection(service *ChatConnectionService, conn net.Conn, entry g79client.G79ChatServerEntry) *ChatConnection {
 	return &ChatConnection{
 		service:  service,
 		entry:    entry,

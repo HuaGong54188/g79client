@@ -51,7 +51,7 @@ func (c *Client) LeaveEnteredGame() error {
 		"app_channel":       "netease",
 		"role_id":           c.UserID,
 		"source":            "netease_p2",
-		"patch_ver":         c.LatestVersion,
+		"patch_ver":         c.G79LatestVersion,
 		"msg":               "",
 		"engine_ver":        c.EngineVersion,
 		"extra_info":        "{}",

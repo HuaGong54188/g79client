@@ -17,7 +17,7 @@ func main() {
 	}
 
 	// 认证
-	if err := client.AuthenticateWithCookie(cookie); err != nil {
+	if err := client.X19AuthenticateWithCookie(cookie); err != nil {
 		log.Fatalf("认证失败: %v", err)
 	}
 
@@ -32,6 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("生成认证v2数据失败: %v", err)
 	}
+	fmt.Println(string(authv2))
 	chainInfo, err := client.SendAuthV2Request(authv2)
 	if err != nil {
 		log.Fatalf("发送认证v2请求失败: %v", err)

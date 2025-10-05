@@ -25,7 +25,7 @@ func main() {
 
 	// 执行认证
 	fmt.Println("开始认证...")
-	err = client.AuthenticateWithCookie(cookie)
+	err = client.G79AuthenticateWithCookie(cookie)
 	if err != nil {
 		log.Fatalf("认证失败: %v", err)
 	}
