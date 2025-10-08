@@ -82,6 +82,18 @@ type SauthData struct {
 	IP             string `json:"ip"`
 }
 
+type PeAuthData struct {
+	EngineVersion string    `json:"engine_version"`
+	ExtraParam    string    `json:"extra_param"`
+	Message       string    `json:"message"`
+	PatchVersion  string    `json:"patch_version"`
+	PayChannel    string    `json:"pay_channel"`
+	SaData        string    `json:"sa_data"`
+	SauthJSON     SauthData `json:"sauth_json"`
+	Seed          string    `json:"seed"`
+	Sign          string    `json:"sign"`
+}
+
 // 使用Cookie进行PE认证
 func (c *Client) G79AuthenticateWithCookie(cookieStr string) error {
 	// 解析Cookie
@@ -120,21 +132,18 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	messagePart := "2b3e7ca013bb30a74d822579860c042b"
 	clientLoginSN := "db797f983ca314e00626b9212705d8cc"
 
-	// 使用传入的Cookie数据构建认证数据
-	sauthJSON := map[string]any{
-		"aim_info":         sauthData.AimInfo,
-		"app_channel":      "app_store",
-		"client_login_sn":  clientLoginSN,
-		"deviceid":         sauthData.DeviceID,
-		"gameid":           sauthData.GameID,
-		"get_access_token": "1",
-		"ip":               sauthData.IP,
-		"login_channel":    sauthData.LoginChannel,
-		"platform":         "ios",
-		"sdk_version":      "5.9.0",
-		"sdkuid":           sauthData.SDKUID,
-		"sessionid":        sauthData.SessionID,
-		"udid":             sauthData.UDID,
+	sauthJSON := SauthData{
+		AimInfo:        sauthData.AimInfo,
+		AppChannel:     "app_store",
+		ClientLoginSN:  clientLoginSN,
+		DeviceID:       sauthData.DeviceID,
+		GameID:         sauthData.GameID,
+		LoginChannel:   "netease",
+		Platform:       "ios",
+		SDKVersion:     "5.9.0",
+		SDKUID:         sauthData.SDKUID,
+		SessionID:      sauthData.SessionID,
+		UDID:           sauthData.UDID,
 	}
 
 	saData := map[string]any{
@@ -163,19 +172,18 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 		"start_type":    "default",
 		"udid":          sauthData.UDID,
 	}
-
 	saDataJSON, _ := json.Marshal(saData)
 
-	peauth := map[string]any{
-		"engine_version": c.EngineVersion,
-		"extra_param":    "extra",
-		"message":        fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.G79LatestVersion, messagePart, seed),
-		"patch_version":  c.G79LatestVersion,
-		"pay_channel":    "",
-		"sa_data":        string(saDataJSON),
-		"sauth_json":     sauthJSON,
-		"seed":           seed,
-		"sign":           "AAAAAAAAAAAAAAAAAAAAAA==",
+	peauth := PeAuthData{
+		EngineVersion: c.EngineVersion,
+		ExtraParam:    "extra",
+		Message:       fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.G79LatestVersion, messagePart, seed),
+		PatchVersion:  c.G79LatestVersion,
+		PayChannel:    "",
+		SaData:        string(saDataJSON),
+		SauthJSON:     sauthJSON,
+		Seed:          seed,
+		Sign:          "AAAAAAAAAAAAAAAAAAAAAA==",
 	}
 
 	// 序列化并加密
@@ -237,6 +245,36 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	c.SetCredentials(loginResp.Entity.EntityID, loginResp.Entity.Token)
 	c.Seed = loginResp.Entity.Seed
 
+	return nil
+}
+
+func (c *Client) G79AuthenticateWithPeAuth(peAuthHexStr string) error {
+	peAuthEncryptedBytes, err := hex.DecodeString(peAuthHexStr)
+	if err != nil {
+		return fmt.Errorf("解析 PeAuth 失败: %v", err)
+	}
+	peAuthBytes, err := G79HttpDecrypt(peAuthEncryptedBytes)
+	if err != nil {
+		return fmt.Errorf("解密 PeAuth 失败: %v", err)
+	}
+	peAuthBytes = GetValidJSON(peAuthBytes)
+	fmt.Println(string(peAuthBytes))
+	var peAuthData PeAuthData
+	err = json.Unmarshal(peAuthBytes, &peAuthData)
+	if err != nil {
+		return fmt.Errorf("解析 PeAuth JSON 失败: %v", err)
+	}
+
+	// 发送认证请求
+	sauthJSON, _ := json.Marshal(peAuthData.SauthJSON)
+	cookieData := CookieData{
+		SauthJSON: string(sauthJSON),
+	}
+	cookieStr, _ := json.Marshal(cookieData)
+	err = c.G79AuthenticateWithCookie(string(cookieStr))
+	if err != nil {
+		return fmt.Errorf("PE认证失败: %v", err)
+	}
 	return nil
 }
 
