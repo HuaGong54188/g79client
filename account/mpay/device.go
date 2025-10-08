@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/Yeah114/g79client/utils"
@@ -136,6 +137,7 @@ func (c *Client) GenerateDevice(ctx context.Context) (*Device, error) {
 }
 
 // LoginEmail 使用邮箱账号登录。
+
 func (d *Device) LoginEmail(ctx context.Context, email, password string) (*User, error) {
 	if err := d.ensureClient(); err != nil {
 		return nil, err
@@ -144,12 +146,37 @@ func (d *Device) LoginEmail(ctx context.Context, email, password string) (*User,
 		return nil, errors.New("mpay: email 与 password 不能为空")
 	}
 
+	hash := md5.Sum([]byte(password))
+	return d.loginEmailWithHash(ctx, email, hex.EncodeToString(hash[:]), password)
+}
+
+// LoginEmailMD5 使用邮箱账号登录，接受 32 位 MD5 密码。
+func (d *Device) LoginEmailMD5(ctx context.Context, email, passwordMD5 string) (*User, error) {
+	if err := d.ensureClient(); err != nil {
+		return nil, err
+	}
+	if email == "" || passwordMD5 == "" {
+		return nil, errors.New("mpay: email 与 password_md5 不能为空")
+	}
+	hash := strings.ToLower(strings.TrimSpace(passwordMD5))
+	if len(hash) != 32 {
+		return nil, fmt.Errorf("mpay: password_md5 长度非法: %s", passwordMD5)
+	}
+	if _, err := hex.DecodeString(hash); err != nil {
+		return nil, fmt.Errorf("mpay: password_md5 非法: %w", err)
+	}
+	return d.loginEmailWithHash(ctx, email, hash, hash)
+}
+
+func (d *Device) loginEmailWithHash(ctx context.Context, email, passwordHash, storedPassword string) (*User, error) {
+	if email == "" || passwordHash == "" {
+		return nil, errors.New("mpay: email 与 password 不能为空")
+	}
 	loginURL := fmt.Sprintf("%s/%s/users?un=ZmdsbmIxMjNAMTYzLmNvbQ%%3D%%3D", deviceEndpoint, d.ID)
 
-	hash := md5.Sum([]byte(password))
 	payload := map[string]string{
 		"username":  email,
-		"password":  hex.EncodeToString(hash[:]),
+		"password":  strings.ToLower(passwordHash),
 		"unique_id": d.UniqueID,
 	}
 	payloadBytes, err := json.Marshal(payload)
@@ -183,7 +210,10 @@ func (d *Device) LoginEmail(ctx context.Context, email, password string) (*User,
 	if err := checkMPayError(body); err != nil {
 		return nil, err
 	}
-	return d.decodeUser(body, false, email, password)
+	if storedPassword == "" {
+		storedPassword = strings.ToLower(passwordHash)
+	}
+	return d.decodeUser(body, false, email, storedPassword)
 }
 
 // Guest 生成游客账号。
