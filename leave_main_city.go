@@ -22,7 +22,7 @@ func (c *Client) LeaveMainCity() (*LeaveMainCityResponse, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(body)))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(body)))
 	if err != nil {
 		return nil, err
 	}

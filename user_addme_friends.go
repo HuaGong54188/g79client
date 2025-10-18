@@ -35,7 +35,7 @@ type AddMeFriendsResponse struct {
 func (c *Client) GetAddMeFriends() (*AddMeFriendsResponse, error) {
 	api := "/user-addme-friends/"
 
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader("{}"))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader("{}"))
 	if err != nil {
 		return nil, err
 	}

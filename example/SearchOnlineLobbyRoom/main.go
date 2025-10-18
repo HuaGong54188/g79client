@@ -21,11 +21,8 @@ func main() {
 		log.Fatalf("认证失败: %v", err)
 	}
 	fmt.Printf("登录成功, 用户ID: %v, 昵称: %s\n", client.UserID, client.UserDetail.Name)
-	// 替换 ReleaseJSON
-	fmt.Println(client.G79ReleaseJSON.ApiGatewayUrl)
-	client.G79ReleaseJSON.ApiGatewayUrl = client.X19ReleaseJSON.ApiGatewayGrayURL
 	// 搜索在线大厅房间
-	keyword := "86958"
+	keyword := "86020"
 	searchResp, err := client.SearchOnlineLobbyRoomByKeyword(keyword, 10, 0)
 	if err != nil {
 		log.Fatalf("搜索在线大厅房间失败: %v", err)

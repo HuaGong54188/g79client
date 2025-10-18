@@ -96,6 +96,7 @@ type PeAuthData struct {
 
 // 使用Cookie进行PE认证
 func (c *Client) G79AuthenticateWithCookie(cookieStr string) error {
+	c.Cookie = cookieStr
 	// 解析Cookie
 	var cookieData CookieData
 	err := json.Unmarshal([]byte(cookieStr), &cookieData)
@@ -133,17 +134,17 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	clientLoginSN := "db797f983ca314e00626b9212705d8cc"
 
 	sauthJSON := SauthData{
-		AimInfo:        sauthData.AimInfo,
-		AppChannel:     "app_store",
-		ClientLoginSN:  clientLoginSN,
-		DeviceID:       sauthData.DeviceID,
-		GameID:         sauthData.GameID,
-		LoginChannel:   "netease",
-		Platform:       "ios",
-		SDKVersion:     "5.9.0",
-		SDKUID:         sauthData.SDKUID,
-		SessionID:      sauthData.SessionID,
-		UDID:           sauthData.UDID,
+		AimInfo:       sauthData.AimInfo,
+		AppChannel:    "app_store",
+		ClientLoginSN: clientLoginSN,
+		DeviceID:      sauthData.DeviceID,
+		GameID:        sauthData.GameID,
+		LoginChannel:  "netease",
+		Platform:      "ios",
+		SDKVersion:    "5.9.0",
+		SDKUID:        sauthData.SDKUID,
+		SessionID:     sauthData.SessionID,
+		UDID:          sauthData.UDID,
 	}
 
 	saData := map[string]any{
@@ -198,7 +199,7 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	}
 
 	// 发送认证请求
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.CoreServerURL+"/pe-authentication", strings.NewReader(hex.EncodeToString(encryptedPayload)))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.CoreServerURL+"/pe-authentication", strings.NewReader(hex.EncodeToString(encryptedPayload)))
 	if err != nil {
 		return err
 	}
@@ -258,7 +259,6 @@ func (c *Client) G79AuthenticateWithPeAuth(peAuthHexStr string) error {
 		return fmt.Errorf("解密 PeAuth 失败: %v", err)
 	}
 	peAuthBytes = GetValidJSON(peAuthBytes)
-	fmt.Println(string(peAuthBytes))
 	var peAuthData PeAuthData
 	err = json.Unmarshal(peAuthBytes, &peAuthData)
 	if err != nil {
@@ -271,6 +271,7 @@ func (c *Client) G79AuthenticateWithPeAuth(peAuthHexStr string) error {
 		SauthJSON: string(sauthJSON),
 	}
 	cookieStr, _ := json.Marshal(cookieData)
+	c.Cookie = string(cookieStr)
 	err = c.G79AuthenticateWithCookie(string(cookieStr))
 	if err != nil {
 		return fmt.Errorf("PE认证失败: %v", err)
@@ -293,6 +294,7 @@ type X19LoginOTPEntity struct {
 }
 
 func (c *Client) X19AuthenticateWithCookie(cookieStr string) error {
+	c.Cookie = cookieStr
 	// 解析Cookie
 	var cookieData CookieData
 	err := json.Unmarshal([]byte(cookieStr), &cookieData)
@@ -520,6 +522,7 @@ func (c *Client) X19AuthenticateWithCookie(cookieStr string) error {
 		return fmt.Errorf("获取用户信息失败: %v", err)
 	}
 	c.UserDetail = &userDetail.Entity
+	c.ReleaseJSON.ApiGatewayUrl = c.X19ReleaseJSON.ApiGatewayGrayURL
 	return nil
 }
 
@@ -567,6 +570,29 @@ func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, erro
 	return json.Marshal(authv2)
 }
 
+// 生成PC大厅游戏认证v2数据（netease_sid: roomID:LobbyGame）
+func (c *Client) GeneratePCLobbyGameAuthV2(roomID, clientKey string) ([]byte, error) {
+	uid, err := c.GetUserIDInt()
+	if err != nil {
+		return nil, err
+	}
+
+	authv2 := map[string]any{
+		"bit":           "64",
+		"clientKey":     clientKey,
+		"displayName":   c.UserDetail.Name,
+		"engineVersion": c.EngineVersion,
+		"netease_sid":   fmt.Sprintf("%s:LobbyGame", roomID),
+		"os_name":       "windows",
+		"patchVersion":  "",
+		"pcCheck":       "0",
+		"platform":      "pc",
+		"uid":           uid,
+	}
+
+	return json.Marshal(authv2)
+}
+
 // 生成网络游戏认证v2数据（netease_sid: roomID:NetworkGame）
 func (c *Client) GenerateNetworkGameAuthV2(roomID, clientKey string) ([]byte, error) {
 	uid, err := c.GetUserIDInt()
@@ -597,7 +623,7 @@ func (c *Client) SendAuthV2Request(authv2Data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.AuthServerURL+api, strings.NewReader(hex.EncodeToString(encryptedData)))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.AuthServerURL+api, strings.NewReader(hex.EncodeToString(encryptedData)))
 	if err != nil {
 		return nil, err
 	}

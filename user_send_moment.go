@@ -37,9 +37,6 @@ func (c *Client) SendMoment(content string, opts *SendMomentOptions) (*SendMomen
 	if strings.TrimSpace(content) == "" {
 		return nil, fmt.Errorf("SendMoment: content 不能为空")
 	}
-	if c.G79ReleaseJSON == nil {
-		return nil, fmt.Errorf("SendMoment: ReleaseJSON 未初始化")
-	}
 
 	jsonData, err := json.Marshal(opts)
 	if err != nil {
@@ -47,7 +44,7 @@ func (c *Client) SendMoment(content string, opts *SendMomentOptions) (*SendMomen
 	}
 
 	api := "/user-send-moment"
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.ApiGatewayUrl+api, strings.NewReader(string(jsonData)))
 	if err != nil {
 		return nil, err
 	}

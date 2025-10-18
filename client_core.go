@@ -38,13 +38,14 @@ type Client struct {
 	UserID           string
 	UserToken        string
 	Seed             string
-	G79ReleaseJSON   *G79ReleaseJSON
-	X19ReleaseJSON   *X19ReleaseJSON
+	ReleaseJSON      G79ReleaseJSON
+	X19ReleaseJSON   X19ReleaseJSON
 	EngineVersion    string
 	G79LatestVersion string
 	UserDetail       *UserDetailEntity
 	peUserLoginAfter *PeUserLoginAfterResponse
 	httpClient       *http.Client
+	Cookie           string
 }
 
 // 创建新的客户端
@@ -58,14 +59,16 @@ func NewClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.G79ReleaseJSON, err = GetGlobalG79ReleaseJSON()
+	ReleaseJSON, err := GetGlobalG79ReleaseJSON()
 	if err != nil {
 		return nil, err
 	}
-	c.X19ReleaseJSON, err = GetGlobalX19ReleaseJSON()
+	c.ReleaseJSON = *ReleaseJSON
+	X19ReleaseJSON, err := GetGlobalX19ReleaseJSON()
 	if err != nil {
 		return nil, err
 	}
+	c.X19ReleaseJSON = *X19ReleaseJSON
 	return c, nil
 }
 

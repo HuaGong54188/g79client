@@ -46,7 +46,7 @@ func (c *Client) SearchUserByNameOrMail(nameOrMail string, searchType, limit int
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", c.G79ReleaseJSON.WebServerUrl+api, strings.NewReader(string(jsonData)))
+	req, err := http.NewRequest("POST", c.ReleaseJSON.WebServerUrl+api, strings.NewReader(string(jsonData)))
 	if err != nil {
 		return nil, err
 	}

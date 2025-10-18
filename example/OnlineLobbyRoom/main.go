@@ -17,13 +17,13 @@ func main() {
 	}
 
 	// 认证
-	if err := client.G79AuthenticateWithCookie(cookie); err != nil {
+	if err := client.X19AuthenticateWithCookie(cookie); err != nil {
 		log.Fatalf("认证失败: %v", err)
 	}
 
 	// 进入在线大厅房间
 	// 注意：示例 roomID 为占位符，请替换为有效房间ID；password 可为空字符串
-	roomID := "4682124817098270675"
+	roomID := "4683186036680040534"
 	password := ""
 
 	// 先查询房间详情
@@ -34,8 +34,10 @@ func main() {
 	if roomInfo.Code != 0 {
 		log.Fatalf("查询房间失败: %s", roomInfo.Message)
 	}
+	fmt.Println(roomInfo.Entity.ResID.String())
 	fmt.Println("查询房间成功")
 
+	/*
 	// 购买房间地图
 	roomMap, err := client.PurchaseItem(roomInfo.Entity.ResID.String())
 	if err != nil {
@@ -44,6 +46,12 @@ func main() {
 	if roomMap.Code != 0 && roomMap.Code != 502 && roomMap.Code != 44 {
 		log.Fatalf("购买房间地图失败(%d): %s", roomMap.Code, roomMap.Message)
 	}
+		*/
+	buyResult, err := client.UserItemPurchase(roomInfo.Entity.ResID.String())
+	if err != nil {
+		log.Fatalf("获取购买结果失败: %v", err)
+	}
+	fmt.Println(buyResult)
 	fmt.Println("购买房间地图成功")
 
 	resp, err := client.EnterOnlineLobbyRoom(roomID, password)
@@ -70,7 +78,7 @@ func main() {
 	// 生成 LobbyGame AuthV2（clientKey 需从游戏握手获取，这里仅示例）
 	// 注意：下面 clientKey 为占位符
 	lobbyClientKey := "MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEzmz6+EK8UC40g5XsqoAjqURAKP6uCAMmXJeEyzR/8BkZ1vVXpFTMF/AmBl3Tf+gvDFPJkT9Bm3bAO0IeXo+ssMOsJX4NFPLM4+YEohwJrJyRaMptmh1nvWue4J5+vbZW"
-	authv2Lobby, err := client.GenerateLobbyGameAuthV2(resp.Entity.RoomID.String(), lobbyClientKey)
+	authv2Lobby, err := client.GeneratePCLobbyGameAuthV2("4641943113293411081", lobbyClientKey)
 	if err != nil {
 		log.Fatalf("生成 LobbyGame AuthV2 失败: %v", err)
 	}
