@@ -549,6 +549,27 @@ func (c *Client) GenerateRentalGameAuthV2(serverID, clientKey string) ([]byte, e
 	return json.Marshal(authv2)
 }
 
+// 生成山头认证v2数据
+func (c *Client) GenerateDomainGameAuthV2(serverID, clientKey string) ([]byte, error) {
+	uid, err := c.GetUserIDInt()
+	if err != nil {
+		return nil, err
+	}
+
+	authv2 := map[string]any{
+		"bit":           "64",
+		"clientKey":     clientKey,
+		"displayName":   c.UserDetail.Name,
+		"engineVersion": c.EngineVersion,
+		"netease_sid":   fmt.Sprintf("%s:DomainGame", serverID),
+		"os_name":       OSName,
+		"patchVersion":  c.G79LatestVersion,
+		"uid":           uid,
+	}
+
+	return json.Marshal(authv2)
+}
+
 // 生成大厅游戏认证v2数据（netease_sid: roomID:LobbyGame）
 func (c *Client) GenerateLobbyGameAuthV2(roomID, clientKey string) ([]byte, error) {
 	uid, err := c.GetUserIDInt()
