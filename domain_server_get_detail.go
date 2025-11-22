@@ -27,7 +27,7 @@ type DomainServerDetailEntity struct {
 	GoodsID              string              `json:"goods_id"`
 	LastStartTime        Uncertain           `json:"last_start_time"`
 	ServerProperties     map[string]any      `json:"server_properties"`
-	ActiveComponents     map[string][]string `json:"active_components"`
+	ActiveComponents     any                  `json:"active_components"`
 	BackupName           string              `json:"backup_name"`
 	Version              string              `json:"version"`
 	BackupTimestamp      string              `json:"backup_ts"`
