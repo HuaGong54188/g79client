@@ -560,6 +560,10 @@ func (c *LinkConnection) CommonPushMessages() <-chan CommonPushData {
 	return c.commonPush
 }
 
+func (c *LinkConnection) Conn() net.Conn {
+	return c.conn
+}
+
 // Close 关闭连接并释放资源。
 func (c *LinkConnection) Close() error {
 	var closeErr error

@@ -11,6 +11,7 @@ import (
 type RentalServerEntity struct {
 	EntityID    Uncertain `json:"entity_id"`    // 唯一ID
 	Name        Uncertain `json:"name"`         // 租赁服号
+	OwnerID     Uncertain `json:"owner_id"`     // 服主ID
 	Visibility  Uncertain `json:"visibility"`   // 可见性
 	Status      Uncertain `json:"status"`       // 状态
 	Capacity    Uncertain `json:"capacity"`     // 容量
