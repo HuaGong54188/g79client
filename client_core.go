@@ -24,7 +24,7 @@ func Refetch() {
 }
 
 func init() {
-	Refetch()
+	go Refetch()
 	go func() {
 		for {
 			time.Sleep(time.Second * 60)

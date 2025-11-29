@@ -71,13 +71,15 @@ var (
 
 func init() {
 	// 在包初始化时尝试预取；失败则忽略，后续调用会再次尝试
-	_, _ = GetGlobalG79LatestVersion()
-	_, _ = GetGlobalG79ReleaseJSON()
-	_, _ = GetGlobalX19ReleaseJSON()
-	_, _ = GetGlobalG79ChatServers()
-	_, _ = GetGlobalG79LinkServers()
-	_, _ = GetGlobalG79TransferServers()
-	_, _ = GetGlobalG79PackList()
+	go func() {
+		_, _ = GetGlobalG79LatestVersion()
+		_, _ = GetGlobalG79ReleaseJSON()
+		_, _ = GetGlobalX19ReleaseJSON()
+		_, _ = GetGlobalG79ChatServers()
+		_, _ = GetGlobalG79LinkServers()
+		_, _ = GetGlobalG79TransferServers()
+		_, _ = GetGlobalG79PackList()
+	}()
 }
 
 func GetGlobalG79LatestVersion() (string, error) {
