@@ -1,9 +1,14 @@
 package g79client
 
 import (
+	"archive/zip"
+	"bytes"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -41,7 +46,10 @@ type G79TransferServerEntry struct {
 	Ports         []int     `json:"ports"`
 }
 
-const g79PackListURL = "https://g79.update.netease.com/pack_list/production/g79_packlist_2"
+const (
+	g79PackListURL  = "https://g79.update.netease.com/pack_list/production/g79_packlist_2"
+	g79PatchListURL = "https://g79.update.netease.com/patch_list/production/g79_rn_patchlist"
+)
 
 // G79PackListEntry 描述单个平台的安装包信息。
 type G79PackListEntry struct {
@@ -51,8 +59,22 @@ type G79PackListEntry struct {
 	MinVer  string `json:"min_ver"`
 }
 
+// PatchInfo describes the patch list payload exposed by NetEase.
+type PatchInfo struct {
+	IOS     []string `json:"ios"`
+	Android []string `json:"android"`
+	URL     string   `json:"url"`
+	URLNew  string   `json:"urlNew"`
+}
+
+// PatchMetadata wraps the patch version and resources hash needed to reproduce the Android client handshake.
+type PatchMetadata struct {
+	Version       string
+	ResourcesHash string
+}
+
 var (
-	globalG79LatestVersion   string
+	globalG79PatchMeta       *PatchMetadata
 	globalG79ReleaseJSON     *G79ReleaseJSON
 	globalX19ReleaseJSON     *X19ReleaseJSON
 	globalG79ChatServers     []G79ChatServerEntry
@@ -60,7 +82,7 @@ var (
 	globalG79TransferServers []G79TransferServerEntry
 	globalG79PackList        map[string]G79PackListEntry
 
-	g79LatestMu     sync.RWMutex
+	g79PatchMu      sync.RWMutex
 	g79ReleaseMu    sync.RWMutex
 	x19ReleaseMu    sync.RWMutex
 	g79ChatServerMu sync.RWMutex
@@ -83,60 +105,188 @@ func init() {
 }
 
 func GetGlobalG79LatestVersion() (string, error) {
-	g79LatestMu.RLock()
-	if globalG79LatestVersion != "" {
-		v := globalG79LatestVersion
-		g79LatestMu.RUnlock()
-		return v, nil
-	}
-	g79LatestMu.RUnlock()
-
-	g79LatestMu.Lock()
-	defer g79LatestMu.Unlock()
-	if globalG79LatestVersion != "" {
-		return globalG79LatestVersion, nil
-	}
-	v, err := fetchG79LatestVersion()
+	meta, err := GetGlobalG79PatchMetadata()
 	if err != nil {
 		return "", err
 	}
-	globalG79LatestVersion = v
-	return v, nil
+	return meta.Version, nil
 }
 
 // RefreshG79LatestVersion forces a refresh of the cached latest version.
 func RefreshG79LatestVersion() (string, error) {
-	v, err := fetchG79LatestVersion()
+	meta, err := RefreshG79PatchMetadata()
 	if err != nil {
 		return "", err
 	}
-	g79LatestMu.Lock()
-	globalG79LatestVersion = v
-	g79LatestMu.Unlock()
-	return v, nil
+	return meta.Version, nil
 }
 
-func fetchG79LatestVersion() (string, error) {
-	resp, err := http.Get("https://g79.update.netease.com/patch_list/production/g79_rn_patchlist")
-	if err != nil {
-		return "", err
+func GetGlobalG79PatchMetadata() (*PatchMetadata, error) {
+	g79PatchMu.RLock()
+	if globalG79PatchMeta != nil {
+		meta := *globalG79PatchMeta
+		g79PatchMu.RUnlock()
+		return &meta, nil
 	}
+	g79PatchMu.RUnlock()
+
+	g79PatchMu.Lock()
+	defer g79PatchMu.Unlock()
+	if globalG79PatchMeta != nil {
+		meta := *globalG79PatchMeta
+		return &meta, nil
+	}
+	meta, err := fetchG79PatchMetadata()
+	if err != nil {
+		return nil, err
+	}
+	globalG79PatchMeta = meta
+	return meta, nil
+}
+
+func RefreshG79PatchMetadata() (*PatchMetadata, error) {
+	meta, err := fetchG79PatchMetadata()
+	if err != nil {
+		return nil, err
+	}
+	g79PatchMu.Lock()
+	globalG79PatchMeta = meta
+	g79PatchMu.Unlock()
+	return meta, nil
+
+}
+
+func fetchG79PatchMetadata() (*PatchMetadata, error) {
+	resp, err := http.Get(g79PatchListURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
 
 	body, err := readResponseBody(resp)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var patchInfo PatchInfo
 	if err := json.Unmarshal(body, &patchInfo); err != nil {
+		return nil, err
+	}
+
+	version, err := selectAndroidPatchVersion(patchInfo.Android)
+	if err != nil {
+		return nil, err
+	}
+
+	resourcesHash, err := fetchAndroidResourcesHash(version, patchInfo.URLNew)
+	if err != nil {
+		return nil, err
+	}
+
+	return &PatchMetadata{
+		Version:       version,
+		ResourcesHash: resourcesHash,
+	}, nil
+}
+
+func selectAndroidPatchVersion(versions []string) (string, error) {
+	if len(versions) == 0 {
+		return "", fmt.Errorf("no android patch versions available")
+	}
+	base, err := getEngineBasePrefix()
+	if err != nil {
+		return "", err
+	}
+	for i := len(versions) - 1; i >= 0; i-- {
+		if strings.HasPrefix(versions[i], base) {
+			return versions[i], nil
+		}
+	}
+	return "", fmt.Errorf("no android patch version matches base prefix %s", base)
+}
+
+func getEngineBasePrefix() (string, error) {
+	parts := strings.Split(EngineVersion, ".")
+	if len(parts) < 2 {
+		return "", fmt.Errorf("invalid engine version %q", EngineVersion)
+	}
+	return fmt.Sprintf("%s.%s", parts[0], parts[1]), nil
+}
+
+func fetchAndroidResourcesHash(version, baseURL string) (string, error) {
+	if baseURL == "" {
+		return "", fmt.Errorf("empty patch base url")
+	}
+	root := strings.TrimRight(baseURL, "/")
+	pre := fmt.Sprintf("%s/android_%s/%s/android", root, version, version)
+	manifest, err := fetchFirstZipEntry(fmt.Sprintf("%s/manifest.zip", pre))
+	if err != nil {
+		return "", err
+	}
+	var manifestPayload struct {
+		Assets map[string]struct {
+			MD5 string `json:"md5"`
+		} `json:"assets"`
+	}
+	if err := json.Unmarshal(manifest, &manifestPayload); err != nil {
 		return "", err
 	}
 
-	if len(patchInfo.IOS) == 0 {
-		return "", fmt.Errorf("no iOS version info found")
+	hashBase := g79BaseMCPHash
+	if asset, ok := manifestPayload.Assets["vanilla.mcp"]; ok && asset.MD5 != "" {
+		hashBase = asset.MD5
+	}
+	if asset, ok := manifestPayload.Assets["vanilla_patch.mcp"]; ok && asset.MD5 != "" {
+		hashBase += asset.MD5
 	}
 
-	return patchInfo.IOS[len(patchInfo.IOS)-1], nil
+	rnURL := fmt.Sprintf("%s/rn/index.bundle.backup", pre)
+	rnHash := ""
+	if raw, err := downloadBytes(rnURL); err == nil {
+		payload := raw
+		if zipped, zipErr := readFirstFileFromZipData(raw); zipErr == nil {
+			payload = zipped
+		}
+		rnHash = fmt.Sprintf("%x", md5.Sum(payload))
+	}
+	final := fmt.Sprintf("%x", md5.Sum([]byte(hashBase+rnHash)))
+	return final, nil
+}
+
+func fetchFirstZipEntry(url string) ([]byte, error) {
+	data, err := downloadBytes(url)
+	if err != nil {
+		return nil, err
+	}
+	return readFirstFileFromZipData(data)
+}
+
+func readFirstFileFromZipData(data []byte) ([]byte, error) {
+	reader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+	if err != nil {
+		return nil, err
+	}
+	if len(reader.File) == 0 {
+		return nil, fmt.Errorf("zip archive is empty")
+	}
+	rc, err := reader.File[0].Open()
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	return io.ReadAll(rc)
+}
+
+func downloadBytes(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("download %s returned status %d", url, resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
 }
 
 func GetGlobalG79ReleaseJSON() (*G79ReleaseJSON, error) {
@@ -174,7 +324,7 @@ func RefreshG79ReleaseJSON() (*G79ReleaseJSON, error) {
 }
 
 func fetchG79ReleaseJSON() (*G79ReleaseJSON, error) {
-	resp, err := http.Get("https://g79.update.netease.com/serverlist/ios_release.0.25.json")
+	resp, err := http.Get("https://g79.update.netease.com/serverlist/adr_release.0.17.json")
 	if err != nil {
 		return nil, err
 	}

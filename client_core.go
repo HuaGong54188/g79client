@@ -6,25 +6,23 @@ import (
 	"time"
 )
 
-var EngineVersion = "3.5.5.278500"
+var EngineVersion = "3.4.5.273121"
 
 func Refetch() {
+	packList, _ := RefreshG79PackList()
+	if neteasePack, ok := packList["netease"]; ok && neteasePack.Version != "" {
+		EngineVersion = neteasePack.Version
+	}
 	_, _ = RefreshG79LatestVersion()
 	_, _ = RefreshG79ReleaseJSON()
 	_, _ = RefreshX19ReleaseJSON()
-	_, _ = RefreshG79PackList()
 	_, _ = RefreshG79ChatServers()
 	_, _ = RefreshG79LinkServers()
 	_, _ = RefreshG79TransferServers()
-	packList, _ := RefreshG79PackList()
-	neteasePack, ok := packList["netease"]
-	if ok {
-		EngineVersion = neteasePack.Version
-	}
 }
 
 func init() {
-	go Refetch()
+	Refetch()
 	go func() {
 		for {
 			time.Sleep(time.Second * 60)
@@ -35,17 +33,18 @@ func init() {
 
 // Client 结构体
 type Client struct {
-	UserID           string
-	UserToken        string
-	Seed             string
-	ReleaseJSON      G79ReleaseJSON
-	X19ReleaseJSON   X19ReleaseJSON
-	EngineVersion    string
-	G79LatestVersion string
-	UserDetail       *UserDetailEntity
-	peUserLoginAfter *PeUserLoginAfterResponse
-	httpClient       *http.Client
-	Cookie           string
+	UserID             string
+	UserToken          string
+	Seed               string
+	ReleaseJSON        G79ReleaseJSON
+	X19ReleaseJSON     X19ReleaseJSON
+	EngineVersion      string
+	G79LatestVersion   string
+	patchResourcesHash string
+	UserDetail         *UserDetailEntity
+	peUserLoginAfter   *PeUserLoginAfterResponse
+	httpClient         *http.Client
+	Cookie             string
 }
 
 // 创建新的客户端
@@ -55,10 +54,12 @@ func NewClient() (*Client, error) {
 		httpClient:    &http.Client{},
 	}
 	var err error
-	c.G79LatestVersion, err = GetGlobalG79LatestVersion()
+	patchMeta, err := GetGlobalG79PatchMetadata()
 	if err != nil {
 		return nil, err
 	}
+	c.G79LatestVersion = patchMeta.Version
+	c.patchResourcesHash = patchMeta.ResourcesHash
 	ReleaseJSON, err := GetGlobalG79ReleaseJSON()
 	if err != nil {
 		return nil, err

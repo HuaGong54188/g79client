@@ -276,33 +276,7 @@ func G79HttpDecrypt(data string) (string, error) {
 	return string(decrypted[:dropPos+1]), nil
 }
 
-// PeAuthSign PE 认证签名计算
 func PeAuthSign(v string, sp, tr int) (string, error) {
-	// 步骤1：补0到4字节倍数
-	l := len(v) % 4
-	if l != 0 {
-		v += strings.Repeat("0", 4-l)
-	}
-	a := []byte(v)
-
-	// 步骤2：转换为4字节一组的大端uint32
-	var p []uint32
-	for i := 0; i < len(a); i += 4 {
-		chunk := a[i : i+4]
-		t := uint32(chunk[0])<<24 | uint32(chunk[1])<<16 | uint32(chunk[2])<<8 | uint32(chunk[3])
-		p = append(p, t)
-	}
-
-	// 步骤3：补0xabcde987到64的倍数
-	l = len(p) % 64
-	if l != 0 {
-		d := 64 - l
-		for i := 0; i < d; i++ {
-			p = append(p, 0xabcde987)
-		}
-	}
-
-	// 步骤4：初始化固定参数
 	b := []byte{
 		0x62, 0x25, 0x1e, 0xf6, 0x40, 0xb3, 0x40, 0xc0, 0x51, 0x5a, 0x5e, 0x26, 0xaa, 0xc7, 0xb6, 0xe9,
 		0x44, 0xea, 0xbe, 0xa4, 0xa9, 0xcf, 0xde, 0x4b, 0x60, 0x4b, 0xbb, 0xf6, 0x70, 0xbc, 0xbf, 0xbe,
@@ -310,83 +284,78 @@ func PeAuthSign(v string, sp, tr int) (string, error) {
 		0xc6, 0x7e, 0x9b, 0x28, 0xfa, 0x27, 0xa1, 0xea, 0x85, 0x30, 0xef, 0xd4, 0x05, 0x1d, 0x88, 0x04,
 		0xe6, 0xcd, 0xe1, 0x21, 0xd6, 0x07, 0x37, 0xc3, 0x87, 0x0d, 0xd5, 0xf4, 0xed, 0x14, 0x5a, 0x45,
 	}
-	q := []byte{
+	qTable := []byte{
 		0x01, 0x06, 0x0a, 0x0d, 0x02, 0x05, 0x09, 0x0e, 0x04, 0x07, 0x0b, 0x03, 0x03, 0x08, 0x0b, 0x05,
 		0x01, 0x07, 0x0b, 0x0e,
 	}
 
-	// 步骤5：提取c和更新q（检查索引有效性）
-	c := make([]uint32, 4)
-	off := 16 * sp
-	for i := 0; i < 4; i++ {
-		chunkEnd := off + i*4 + 4
-		if chunkEnd > len(b) {
-			return "", fmt.Errorf("sp=%d out of range for b (i=%d)", sp, i)
+	if sp < 0 || tr <= 0 {
+		return "", fmt.Errorf("invalid sp/tr parameters")
+	}
+	if 16*sp+16 > len(b) {
+		return "", fmt.Errorf("sp=%d out of range for constant table", sp)
+	}
+	if 4*sp+4 > len(qTable) {
+		return "", fmt.Errorf("sp=%d out of range for shift table", sp)
+	}
+
+	// pad string to 4-byte boundary
+	if rem := len(v) % 4; rem != 0 {
+		v += strings.Repeat("0", 4-rem)
+	}
+
+	a := []byte(v)
+	p := make([]uint32, 0, len(a)/4)
+	for i := 0; i < len(a); i += 4 {
+		t := uint32(a[i])<<24 | uint32(a[i+1])<<16 | uint32(a[i+2])<<8 | uint32(a[i+3])
+		p = append(p, t)
+	}
+
+	if rem := len(p) % 64; rem != 0 {
+		for i := 0; i < 64-rem; i++ {
+			p = append(p, 0xabcde987)
 		}
-		chunk := b[off+i*4 : chunkEnd]
-		c[i] = binary.LittleEndian.Uint32(chunk)
 	}
 
-	off2 := 4 * sp
-	if off2+4 > len(q) {
-		return "", fmt.Errorf("sp=%d out of range for q", sp)
+	c := make([]uint32, 4)
+	for i := 0; i < 4; i++ {
+		offset := 16*sp + i*4
+		c[i] = binary.LittleEndian.Uint32(b[offset : offset+4])
 	}
-	newQ := make([]byte, 4)
-	copy(newQ, q[off2:off2+4])
-	q = newQ
+	q := make([]byte, 4)
+	copy(q, qTable[4*sp:4*sp+4])
 
-	// 步骤6：初始化签名变量
 	r := uint32(0x67452301)
 	u := uint32(0xefcdab89)
 	x := uint32(0x98badcfe)
 	z := uint32(0x10325476)
 
-	// 取低32位工具函数
 	f := func(a int64) uint32 {
-		return uint32(a & 0xffffffff)
+		return uint32(uint64(a) & 0xffffffff)
 	}
 
-	// 步骤7：核心签名循环
-	for k := 0; k < tr; k++ {
+	for t := 0; t < tr; t++ {
 		for j := 0; j < len(p); j += 4 {
-			// 保存当前变量值（确保计算顺序正确）
-			rOld, uOld, xOld, zOld := r, u, x, z
+			a1 := int64(r) + int64((u&x)|(^u&z))
+			r = f(int64(u) + ((a1 + int64(p[j]) + int64(c[0])) << uint(q[0])))
 
-			// 计算F函数与r更新
-			fVal := (uOld & xOld) | (^uOld & zOld)
-			a1 := int64(rOld) + int64(fVal)
-			shift1 := (a1 + int64(p[j]) + int64(c[0])) << int(q[0])
-			rNew := f(int64(uOld) + shift1)
+			a2 := int64(r) + int64((u&z)|(^z&x))
+			u = f(int64(u) + ((a2 + int64(p[j]) + int64(c[1])) << uint(q[1])))
 
-			// 计算G函数与u更新
-			gVal := (uOld & zOld) | (xOld & ^zOld)
-			a2 := int64(rNew) + int64(gVal)
-			shift2 := (a2 + int64(p[j]) + int64(c[1])) << int(q[1])
-			uNew := f(int64(uOld) + shift2)
+			a3 := int64(r) + int64(u^x^z)
+			x = f(int64(u) + ((a3 + int64(p[j]) + int64(c[2])) << uint(q[2])))
 
-			// 计算H函数与x更新
-			hVal := uNew ^ xOld ^ zOld
-			a3 := int64(rNew) + int64(hVal)
-			shift3 := (a3 + int64(p[j]) + int64(c[2])) << int(q[2])
-			xNew := f(int64(uNew) + shift3)
-
-			// 计算I函数与z更新
-			iVal := xOld ^ (uNew | ^zOld)
-			a4 := int64(rNew) + int64(iVal)
-			shift4 := (a4 + int64(p[j]) + int64(c[3])) << int(q[3])
-			zNew := f(int64(uNew) + shift4)
-
-			// 更新变量
-			r, u, x, z = rNew, uNew, xNew, zNew
+			term := f(int64(x) ^ int64(u|z))
+			a4 := int64(r) + int64(term)
+			z = f(int64(u) + ((a4 + int64(p[j]) + int64(c[3])) << uint(q[3])))
 		}
 	}
 
-	// 步骤8：结果转Little-Endian并Base64编码
-	resultBytes := make([]byte, 16)
-	binary.LittleEndian.PutUint32(resultBytes[:4], r)
-	binary.LittleEndian.PutUint32(resultBytes[4:8], u)
-	binary.LittleEndian.PutUint32(resultBytes[8:12], x)
-	binary.LittleEndian.PutUint32(resultBytes[12:16], z)
+	out := make([]byte, 16)
+	binary.LittleEndian.PutUint32(out[0:4], r)
+	binary.LittleEndian.PutUint32(out[4:8], u)
+	binary.LittleEndian.PutUint32(out[8:12], x)
+	binary.LittleEndian.PutUint32(out[12:16], z)
 
-	return base64.StdEncoding.EncodeToString(resultBytes), nil
+	return base64.StdEncoding.EncodeToString(out), nil
 }

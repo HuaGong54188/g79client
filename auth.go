@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Yeah114/g79client/utils"
 	"github.com/google/uuid"
 )
 
@@ -56,13 +57,48 @@ type X19ReleaseJSON struct {
 
 const x19DefaultVersion = "1.15.7.20505"
 
-type PatchInfo struct {
-	IOS []string `json:"ios"`
-}
-
 // Cookie数据结构
 type CookieData struct {
 	SauthJSON string `json:"sauth_json"`
+	MacAddr   string `json:"mac_addr"`
+	RAM       string `json:"ram"`
+	ROM       string `json:"rom"`
+	IsGuest   *bool  `json:"is_guest"`
+	Emulator  *int   `json:"emulator"`
+}
+
+func (c *CookieData) macAddress() string {
+	mac := strings.ToUpper(strings.TrimSpace(c.MacAddr))
+	if mac == "" {
+		return "02:00:00:00:00:00"
+	}
+	mac = strings.ReplaceAll(mac, "-", ":")
+	return mac
+}
+
+func (c *CookieData) ramValue() string {
+	if strings.TrimSpace(c.RAM) == "" {
+		return "4294967296"
+	}
+	return c.RAM
+}
+
+func (c *CookieData) romValue() string {
+	return c.ROM
+}
+
+func (c *CookieData) isGuestFlag() int {
+	if c.IsGuest != nil && *c.IsGuest {
+		return 1
+	}
+	return 0
+}
+
+func (c *CookieData) emulatorFlag() int {
+	if c.Emulator != nil {
+		return *c.Emulator
+	}
+	return 0
 }
 
 type SauthData struct {
@@ -83,15 +119,15 @@ type SauthData struct {
 }
 
 type PeAuthData struct {
-	EngineVersion string    `json:"engine_version"`
-	ExtraParam    string    `json:"extra_param"`
-	Message       string    `json:"message"`
-	PatchVersion  string    `json:"patch_version"`
-	PayChannel    string    `json:"pay_channel"`
-	SaData        string    `json:"sa_data"`
-	SauthJSON     SauthData `json:"sauth_json"`
-	Seed          string    `json:"seed"`
-	Sign          string    `json:"sign"`
+	EngineVersion string         `json:"engine_version"`
+	ExtraParam    string         `json:"extra_param"`
+	Message       string         `json:"message"`
+	PatchVersion  string         `json:"patch_version"`
+	PayChannel    string         `json:"pay_channel"`
+	SaData        string         `json:"sa_data"`
+	SauthJSON     map[string]any `json:"sauth_json"`
+	Seed          string         `json:"seed"`
+	Sign          string         `json:"sign"`
 }
 
 // 使用Cookie进行PE认证
@@ -111,7 +147,7 @@ func (c *Client) G79AuthenticateWithCookie(cookieStr string) error {
 	}
 
 	// 执行PE认证
-	err = c.g79PerformPEAuthWithCookie(&sauthData)
+	err = c.g79PerformPEAuthWithCookie(&sauthData, &cookieData)
 	if err != nil {
 		return fmt.Errorf("PE认证失败: %v", err)
 	}
@@ -128,82 +164,75 @@ func (c *Client) G79AuthenticateWithCookie(cookieStr string) error {
 }
 
 // 使用Cookie执行PE认证
-func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
+func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData, cookieData *CookieData) error {
+	if sauthData == nil {
+		return fmt.Errorf("缺少 sauth 数据")
+	}
+	if c.G79LatestVersion == "" || c.patchResourcesHash == "" {
+		return fmt.Errorf("缺少补丁信息，请重新初始化客户端")
+	}
+
+	required := map[string]string{
+		"sdkuid":    sauthData.SDKUID,
+		"sessionid": sauthData.SessionID,
+		"udid":      sauthData.UDID,
+		"deviceid":  sauthData.DeviceID,
+	}
+	for field, val := range required {
+		if strings.TrimSpace(val) == "" {
+			return fmt.Errorf("sauth_json 缺少字段 %s", field)
+		}
+	}
+
 	seed := uuid.New().String()
-	messagePart := "2b3e7ca013bb30a74d822579860c042b"
-	clientLoginSN := "db797f983ca314e00626b9212705d8cc"
+	c.Seed = seed
 
-	sauthJSON := SauthData{
-		AimInfo:       sauthData.AimInfo,
-		AppChannel:    "app_store",
-		ClientLoginSN: clientLoginSN,
-		DeviceID:      sauthData.DeviceID,
-		GameID:        sauthData.GameID,
-		LoginChannel:  "netease",
-		Platform:      "ios",
-		SDKVersion:    "5.9.0",
-		SDKUID:        sauthData.SDKUID,
-		SessionID:     sauthData.SessionID,
-		UDID:          sauthData.UDID,
+	clientLoginSN, err := generateClientLoginSN()
+	if err != nil {
+		return fmt.Errorf("生成 client_login_sn 失败: %w", err)
 	}
 
-	saData := map[string]any{
-		"app_channel":   "app_store",
-		"app_ver":       c.G79LatestVersion,
-		"core_num":      "6",
-		"cpu_digit":     "0",
-		"cpu_hz":        "",
-		"cpu_name":      "",
-		"device_height": "2796",
-		"device_model":  "iPhone16,2",
-		"device_width":  "1290",
-		"disk":          "",
-		"emulator":      0,
-		"first_udid":    sauthData.UDID,
-		"is_guest":      0,
-		"launcher_type": "PE_C++",
-		"mac_addr":      "02:00:00:00:00:00",
-		"network":       "--",
-		"os_name":       "iOS",
-		"os_ver":        "18.1.1",
-		"ram":           "8034369536",
-		"rom":           "",
-		"root":          false,
-		"sdk_ver":       "5.9.0",
-		"start_type":    "default",
-		"udid":          sauthData.UDID,
+	sauthPayload := buildAndroidSauthPayload(sauthData, clientLoginSN)
+
+	saDataPayload := buildAndroidSaDataPayload(c, sauthData, cookieData)
+	saDataJSON, err := json.Marshal(saDataPayload)
+	if err != nil {
+		return fmt.Errorf("序列化 sa_data 失败: %w", err)
 	}
-	saDataJSON, _ := json.Marshal(saData)
+
+	versionMessage := fmt.Sprintf("%s%s%s%s%s%s", c.EngineVersion, g79LibraryHash, c.G79LatestVersion, c.patchResourcesHash, g79SignatureHash, seed)
+	sign, err := utils.PeAuthSign(versionMessage, 2, 9)
+	if err != nil {
+		return fmt.Errorf("计算签名失败: %w", err)
+	}
 
 	peauth := PeAuthData{
 		EngineVersion: c.EngineVersion,
 		ExtraParam:    "extra",
-		Message:       fmt.Sprintf("%sapple%s%s%s", c.EngineVersion, c.G79LatestVersion, messagePart, seed),
+		Message:       versionMessage,
 		PatchVersion:  c.G79LatestVersion,
-		PayChannel:    "",
+		PayChannel:    g79AndroidMessageTag,
 		SaData:        string(saDataJSON),
-		SauthJSON:     sauthJSON,
+		SauthJSON:     sauthPayload,
 		Seed:          seed,
-		Sign:          "AAAAAAAAAAAAAAAAAAAAAA==",
+		Sign:          sign,
 	}
 
-	// 序列化并加密
-	peauthJSON, err := json.Marshal(peauth)
+	payload, err := json.Marshal(peauth)
 	if err != nil {
-		return err
+		return fmt.Errorf("序列化认证数据失败: %w", err)
 	}
+	fmt.Println(string(payload))
 
-	encryptedPayload, err := G79HttpEncrypt(peauthJSON)
+	encryptedPayload, err := G79HttpEncrypt(payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("加密认证数据失败: %w", err)
 	}
 
-	// 发送认证请求
 	req, err := http.NewRequest("POST", c.ReleaseJSON.CoreServerURL+"/pe-authentication", strings.NewReader(hex.EncodeToString(encryptedPayload)))
 	if err != nil {
 		return err
 	}
-
 	req.Header.Set("User-Agent", "libhttpclient/1.0.0.0")
 	req.Header.Set("Accept-Encoding", "gzip")
 	req.Header.Set("Content-Type", "application/json")
@@ -219,7 +248,6 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 		return err
 	}
 
-	// 解密响应
 	encryptedResp, err := hex.DecodeString(string(respBody))
 	if err != nil {
 		return err
@@ -233,8 +261,7 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 	validJSON := GetValidJSON(decryptedResp)
 
 	var loginResp LoginResponse
-	err = json.Unmarshal(validJSON, &loginResp)
-	if err != nil {
+	if err := json.Unmarshal(validJSON, &loginResp); err != nil {
 		return fmt.Errorf("解析登录响应失败: %v, 响应内容: %s", err, string(validJSON))
 	}
 
@@ -242,11 +269,96 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData) error {
 		return fmt.Errorf("登录失败 (code: %d): %s", loginResp.Code, loginResp.Message)
 	}
 
-	// 设置用户凭证
 	c.SetCredentials(loginResp.Entity.EntityID, loginResp.Entity.Token)
 	c.Seed = loginResp.Entity.Seed
 
 	return nil
+}
+
+func generateClientLoginSN() (string, error) {
+	buf, err := randomBytes(16)
+	if err != nil {
+		return "", err
+	}
+	return strings.ToUpper(hex.EncodeToString(buf)), nil
+}
+
+func buildAndroidSauthPayload(sauthData *SauthData, clientLoginSN string) map[string]any {
+	aimInfo := strings.TrimSpace(sauthData.AimInfo)
+	if aimInfo == "" {
+		aimInfo = `{"aim":"127.0.0.1","country":"CN","tz":"+0800","tzid":"","celluar_ip":"","operator":"","is_vpn_enabled":"false"}`
+	}
+	sdkVersion := strings.TrimSpace(sauthData.SDKVersion)
+	if sdkVersion == "" {
+		sdkVersion = "5.9.0"
+	}
+	ip := strings.TrimSpace(sauthData.IP)
+	if ip == "" {
+		ip = "127.0.0.1"
+	}
+	gameID := strings.TrimSpace(sauthData.GameID)
+	if gameID == "" {
+		gameID = "x19"
+	}
+	return map[string]any{
+		"aim_info":           aimInfo,
+		"app_channel":        "netease",
+		"client_login_sn":    clientLoginSN,
+		"deviceid":           sauthData.DeviceID,
+		"gameid":             gameID,
+		"gas_token":          sauthData.GasToken,
+		"get_access_token":   "1",
+		"ip":                 ip,
+		"is_unisdk_guest":    0,
+		"login_channel":      "netease",
+		"platform":           "ad",
+		"sdk_version":        sdkVersion,
+		"sdkuid":             sauthData.SDKUID,
+		"sessionid":          sauthData.SessionID,
+		"source_app_channel": "netease",
+		"source_platform":    "ad",
+		"step":               g79AndroidStep,
+		"step2":              g79AndroidStep2,
+		"udid":               sauthData.UDID,
+	}
+}
+
+func buildAndroidSaDataPayload(c *Client, sauthData *SauthData, cookieData *CookieData) map[string]any {
+	sdkVersion := strings.TrimSpace(sauthData.SDKVersion)
+	if sdkVersion == "" {
+		sdkVersion = "5.9.0"
+	}
+	udid := sauthData.UDID
+	if strings.TrimSpace(udid) == "" {
+		udid = "0000000000000000"
+	}
+
+	return map[string]any{
+		"app_channel":   "netease",
+		"app_ver":       c.G79LatestVersion,
+		"core_num":      "u0004",
+		"cpu_digit":     "64",
+		"cpu_hz":        "2465600",
+		"cpu_name":      "placeholder",
+		"device_height": "900",
+		"device_model":  "SAMSUNG#SM-G977N",
+		"device_width":  "1600",
+		"disk":          "",
+		"emulator":      cookieData.emulatorFlag(),
+		"first_udid":    udid,
+		"is_guest":      cookieData.isGuestFlag(),
+		"launcher_type": "PE_C++",
+		"mac_addr":      cookieData.macAddress(),
+		"network":       "mm_10086",
+		"os_name":       "android",
+		"os_ver":        "5.1.1",
+		"ram":           cookieData.ramValue(),
+		"rom":           cookieData.romValue(),
+		"root":          false,
+		"sdk_ver":       sdkVersion,
+		"start_type":    "default",
+		"udid":          udid,
+	}
 }
 
 func (c *Client) G79AuthenticateWithPeAuth(peAuthHexStr string) error {
