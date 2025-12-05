@@ -222,7 +222,6 @@ func (c *Client) g79PerformPEAuthWithCookie(sauthData *SauthData, cookieData *Co
 	if err != nil {
 		return fmt.Errorf("序列化认证数据失败: %w", err)
 	}
-	fmt.Println(string(payload))
 
 	encryptedPayload, err := G79HttpEncrypt(payload)
 	if err != nil {
