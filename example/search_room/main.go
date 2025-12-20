@@ -23,11 +23,11 @@ func main() {
 		log.Fatalf("创建客户端失败: %v", err)
 	}
 
-	if err := client.G79AuthenticateWithCookie(cookie); err != nil {
+	if err := client.X19AuthenticateWithCookie(cookie); err != nil {
 		log.Fatalf("认证失败: %v", err)
 	}
 
-	keyword := "24049"
+	keyword := "93560"
 	if len(os.Args) > 1 && os.Args[1] != "" {
 		keyword = os.Args[1]
 	}
@@ -35,7 +35,7 @@ func main() {
 	api := "/online-lobby-room/query/search-by-name-v2"
 	body := map[string]interface{}{
 		"length":  20,
-		"version": "1.21.0",
+		"version": "1.21.2",
 		"res_id":  "",
 		"keyword": keyword,
 		"offset":  0,
@@ -43,7 +43,7 @@ func main() {
 	b, _ := json.Marshal(body)
 	doRequest := func() (int, []byte, map[string]any) {
 		token := g79client.CalculateDynamicToken(api, string(b), client.UserToken)
-		req, err := http.NewRequest("POST", client.ReleaseJSON.ApiGatewayUrl+api, bytes.NewReader(b))
+		req, err := http.NewRequest("POST", "https://x19apigatewayobt.nie.netease.com"+api, bytes.NewReader(b))
 		if err != nil {
 			log.Fatalf("构造请求失败: %v", err)
 		}
@@ -67,6 +67,7 @@ func main() {
 		}
 		raw, _ := io.ReadAll(reader)
 		var obj map[string]any
+		fmt.Println(string(raw))
 		_ = json.Unmarshal(raw, &obj)
 		code := 0
 		if v, ok := obj["code"].(float64); ok {
