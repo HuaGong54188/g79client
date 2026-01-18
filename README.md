@@ -1,3 +1,24 @@
+# 前言
+
+由于网易我的世界已经更新了3.7版本，因此，该存储库在进行认证时会提示 `客户端版本过低，请升级客户端` ，因此你应该应该参考下方内容进行更改
+
+1.出现该问题的原因是因为自动更新到了最新的3.7版本，但Sign部分为过时的，所以我们应更改这部分的相关内容(当然，你也可以通过修改代码继续使用原本的3.6进行登录，经过观测目前可行，对此不做多述)
+
+2.`auth.go` 文件中有这样的一部分
+
+```bash
+	versionMessage := fmt.Sprintf("%s%s%s%s%s%s", c.EngineVersion, g79LibraryHash, c.G79LatestVersion, c.patchResourcesHash, g79SignatureHash, seed)
+	sign, err := utils.PeAuthSign(versionMessage, 2, 9)
+	if err != nil {
+		return fmt.Errorf("计算签名失败: %w", err)
+	}
+```
+我们应该更改对于 `utils.PeAuthSign` 这部分的传入参数，具体如何修改，对此不再多述
+
+3.`engine_consts.go` 文件中包含了Sign计算所需要的必要参数，我们只需要修改 g79LibraryHash 此处，实际是 `libminecraftpe.so` 的md5信息，当然你也可以通过抓取 `https://g79obtapigtcoregray.minecraft.cn/pe-authentication` 的请求体并解密得到其中的message字段，也包含此参数，对此不在多述
+
+4.`const.go` 文件中包含了内部版本号的信息，你应该将其中内容替换为网易3.7版本所对应的内部版本号，对此不在多述
+
 # G79Client Go 模块
 
 这是一个用 Go 重写的网易我的世界 G79 客户端库，原始功能来自 Python 版本的 `t.py`。
