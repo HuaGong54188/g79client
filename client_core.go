@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-var EngineVersion = "3.4.5.273121"
+var EngineVersion = "3.7.2.287101"
 
 func Refetch() {
 	packList, _ := RefreshG79PackList()
